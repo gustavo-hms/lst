@@ -71,6 +71,10 @@ func Elem(elem interface{}, l *List) bool {
 	return Elem(elem, Tail(l))
 }
 
+func NotElem(elem interface{}, l *List) bool {
+	return !Elem(elem, l)
+}
+
 func Zip(l1, l2 *List) *List {
 	if Empty(l1) || Empty(l2) {
 		return New()
@@ -143,4 +147,40 @@ func All(l *List, f func(x interface{}) bool) bool {
 	return Foldr(true, l, func(value, acc interface{}) interface{} {
 		return f(value) && acc.(bool)
 	}).(bool)
+}
+
+func Group(l *List) *List {
+	vec := [2]*List{New(), New()} // {final list, sublist}
+	result := Foldr(vec, l, func(x, acc interface{}) interface{} {
+		v := acc.([2]*List)
+		switch {
+		case Empty(v[1]):
+			v[1] = Cons(x, v[1])
+		case x == Head(v[1]):
+			v[1] = Cons(x, v[1])
+		default:
+			v[0] = Cons(v[1], v[0])
+			v[1] = NewWithElements(x)
+		}
+		return v
+	})
+
+	r := result.([2]*List)
+	return Cons(r[1], r[0])
+}
+
+func Partition(l *List, f func(x interface{}) bool) (satisfy, doNot *List) {
+	vec := [2]*List{New(), New()} // {satisfy, doNot}
+	result := Foldr(vec, l, func(x, acc interface{}) interface{} {
+		v := acc.([2]*List)
+		if f(x) {
+			v[0], v[1] = Cons(x, v[0]), v[1]
+		} else {
+			v[0], v[1] = v[0], Cons(x, v[1])
+		}
+		return v
+	})
+
+	r := result.([2]*List)
+	return r[0], r[1]
 }

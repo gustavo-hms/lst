@@ -79,9 +79,20 @@ func (l *List) String() string {
 	return "[" + strings.Join(elems, " ") + "]"
 }
 
-func get(l *List, i int) interface{} {
+func Get(l *List, i int) interface{} {
 	last := Len(l) - 1
 	return l.elements[last-i]
+}
+
+func MakeIterator(l *List) func() interface{} {
+	index := -1
+	return func() interface{} {
+		index++
+		if index > Len(l) - 1 {
+			return nil
+		}
+		return Get(l, index)
+	}
 }
 
 func set(l *List, i int, value interface{}) {
@@ -90,7 +101,7 @@ func set(l *List, i int, value interface{}) {
 }
 
 func Head(l *List) interface{} {
-	return get(l, 0)
+	return Get(l, 0)
 }
 
 func Tail(l *List) (tailList *List) {
@@ -102,7 +113,7 @@ func Tail(l *List) (tailList *List) {
 }
 
 func Last(l *List) interface{} {
-	return get(l, Len(l)-1)
+	return Get(l, Len(l)-1)
 }
 
 func Init(l *List) (initList *List) {
@@ -174,7 +185,7 @@ func Foldr(init interface{}, l *List, f func(value, acc interface{}) interface{}
 func Foldl(init interface{}, l *List, f func(acc, value interface{}) interface{}) (accum interface{}) {
 	accum = init
 	for i := 0; i < Len(l); i++ {
-		accum = f(accum, get(l, i))
+		accum = f(accum, Get(l, i))
 	}
 	return
 }
@@ -186,7 +197,7 @@ func Foldl(init interface{}, l *List, f func(acc, value interface{}) interface{}
 func Reverse(l *List) (rev *List) {
 	rev = New()
 	for i := 0; i < Len(l); i++ {
-		rev = Cons(get(l, i), rev)
+		rev = Cons(Get(l, i), rev)
 	}
 	return rev
 }

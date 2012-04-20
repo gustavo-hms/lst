@@ -206,3 +206,17 @@ func Delete(x interface{}, l *List) *List {
 	})
 	return Concatenate(without, Tail(with))
 }
+
+func Difference(base, subtract *List) *List {
+	table := make(map[interface{}]bool)
+	next := MakeIterator(subtract)
+	for e := next(); e != nil; e = next() {
+		table[e] = true
+	}
+	return Foldr(New(), base, func(x, acc interface{}) interface{} {
+		if _, ok := table[x]; ok {
+			return acc
+		}
+		return Cons(x, acc.(*List))
+	}).(*List)
+}

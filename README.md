@@ -10,20 +10,21 @@ resembles C++ list implementation in some way, lst approach tries to be closer
 to the Haskell one, even in the function's names provided by the package.  
 Finally, to allow the lists to be efficiently used in recursions, it uses 
 a copy on write strategy, meaning creating a new list based on another one 
-(using functions like lst.NewFromList and lst.Tail) only copies the reference 
-to the underlying data.  A copy of the hole data is only processed when 
-appending new elements would overwrite elements in the shared data. This is 
-handled automatically by the package.
+(using functions like `lst.NewFromList` and `lst.Tail`) only copies the 
+reference to the underlying data.  A copy of the hole data is only processed 
+when appending new elements would overwrite elements in the shared data. This 
+is handled automatically by the package.
 
 Usage
+-----
 
 To create a new list, type:
 
-l := lst.New()
+	l := lst.New()
 
 To add elements, use the Cons function:
 
-l := lst.Cons(element, l)
+	l := lst.Cons(element, l)
 
 Note that a list is never modified in place. Instead, a new list is created 
 each time an operation is executed. Since the package uses copy on write 
@@ -31,9 +32,9 @@ optimisation, this does not allocates extra memory.
 
 To add 17 to all elements in a list:
 
-added17 := lst.Map(l, func(elem interface{}) interface{} {
-	return elem.(int) + 17
-})
+	added17 := lst.Map(l, func(elem interface{}) interface{} {
+		return elem.(int) + 17
+	})
 
 For Haskell programmers, its worthy noting that here the function to be applied 
 is the last argument. It's a pattern used in this package for all higher order 
@@ -41,9 +42,9 @@ functions, just to be easier to write lambdas.
 
 To take only the even elements in a list:
 
-even := lst.Filter(l, func(elem interface{}) bool {
-	return elem.(int)%2 == 0
-})
+	even := lst.Filter(l, func(elem interface{}) bool {
+		return elem.(int)%2 == 0
+	})
 
 Other functions from Haskell library are also implemented. You can take a look 
 at the files inside the package to see them.

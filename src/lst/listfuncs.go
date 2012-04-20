@@ -61,34 +61,86 @@ func FloatProd(l *List) float64 {
 	return result.(float64)
 }
 
-/*
-type sortable interface {
-	Less(otherValue sortable) bool
-}
-
-func Max(l *List) interface{} {
-	if _, ok := Head(l).(sortable); ok {
-		return sortableMax(l)
+func Elem(elem interface{}, l *List) bool {
+	switch {
+	case Empty(l):
+		return false
+	case elem == Head(l):
+		return true
 	}
-	return operatorMax(l)
+	return Elem(elem, Tail(l))
 }
 
-func sortableMax(l *List) sortable {
-	result := Foldr1(l, func(e, acc interface{}) interface{} {
-		if e.(sortable).Less(acc.(sortable)) {
-			return acc
-		}
-		return e
-	})
-	return result.(sortable)
+func Zip(l1, l2 *List) *List {
+	if Empty(l1) || Empty(l2) {
+		return New()
+	}
+	return Cons(NewWithElements(Head(l1), Head(l2)), Zip(Tail(l1), Tail(l2)))
 }
 
-func operatorMax(l *List) interface{} {
-	t := reflect.TypeOf(Head(l))
-	return Foldr1(l, func(e, acc interface{}) interface{} {
-		if e.(t) < acc.(t) {
-			return acc
-		}
-		return e
-	})
-}*/
+func ZipWith(l1, l2 *List, f func(x, y interface{}) interface{}) *List {
+	if Empty(l1) || Empty(l2) {
+		return New()
+	}
+	return Cons(f(Head(l1), Head(l2)), ZipWith(Tail(l1), Tail(l2), f))
+}
+
+func TakeWhile(l *List, f func(x interface{}) bool) *List {
+	if Empty(l) {
+		return New()
+	}
+
+	if f(Head(l)) {
+		return Cons(Head(l), TakeWhile(Tail(l), f))
+	}
+
+	return New()
+}
+
+func DropWhile(l *List, f func(x interface{}) bool) *List {
+	if Empty(l) {
+		return New()
+	}
+
+	if f(Head(l)) {
+		return DropWhile(Tail(l), f)
+	}
+
+	return l
+}
+
+func Span(l *List, f func(x interface{}) bool) (first, rest *List) {
+	return TakeWhile(l, f), DropWhile(l, f)
+}
+
+func Flatten(l *List) *List {
+	return Foldr1(l, func(value, acc interface{}) interface{} {
+		return Concatenate(value.(*List), acc.(*List))
+	}).(*List)
+}
+
+var Concat = Flatten
+
+func And(l *List) bool {
+	return Foldr1(l, func(value, acc interface{}) interface{} {
+		return value.(bool) && acc.(bool)
+	}).(bool)
+}
+
+func Or(l *List) bool {
+	return Foldr1(l, func(value, acc interface{}) interface{} {
+		return value.(bool) || acc.(bool)
+	}).(bool)
+}
+
+func Any(l *List, f func(x interface{}) bool) bool {
+	return Foldr(false, l, func(value, acc interface{}) interface{} {
+		return f(value) || acc.(bool)
+	}).(bool)
+}
+
+func All(l *List, f func(x interface{}) bool) bool {
+	return Foldr(true, l, func(value, acc interface{}) interface{} {
+		return f(value) && acc.(bool)
+	}).(bool)
+}

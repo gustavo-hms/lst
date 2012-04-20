@@ -34,13 +34,30 @@ func NewFromList(original *List) (dest *List) {
 	return
 }
 
-func NewFromSlice(slice []interface{}) (l *List) {
+func newFromAlreadyReversedSlice(slice []interface{}) (l *List) {
 	l = new(List)
 	l.elements = make([]interface{}, len(slice))
 	copy(l.elements, slice) // Copiando para evitar modificações inadvertidas
-	var i int
+	i := len(slice)
 	l.firstEmpty = &i
 	return
+}
+
+func NewFromSlice(slice []interface{}) (l *List) {
+	l = new(List)
+	l.elements = make([]interface{}, len(slice))
+
+	for k, v := range slice {
+		set(l, k, v)
+	}
+
+	i := len(slice)
+	l.firstEmpty = &i
+	return
+}
+
+func NewWithElements(elems ...interface{}) (l *List) {
+	return NewFromSlice(elems)
 }
 
 func Len(l *List) int {
@@ -108,7 +125,7 @@ func Cons(value interface{}, l *List) (newl *List) {
 	if *l.firstEmpty > Len(l)+l.firstUsed {
 		// Neste caso, a posição desejada do vetor já está sendo ocupada. É
 		// necessário fazer uma cópia portanto
-		newl = NewFromSlice(l.elements)
+		newl = newFromAlreadyReversedSlice(l.elements)
 	} else {
 		newl = NewFromList(l)
 	}
@@ -127,21 +144,21 @@ func Cons(value interface{}, l *List) (newl *List) {
 	return
 }
 
-func concat(l1, l2 *List) (con *List) {
+func concatenate(l1, l2 *List) (con *List) {
 	if Len(l1) == 0 {
 		con = NewFromList(l2)
 		return
 	}
 
-	con = Cons(Head(l1), concat(Tail(l1), l2))
+	con = Cons(Head(l1), concatenate(Tail(l1), l2))
 	return
 }
 
-func Concat(lists ...*List) (con *List) {
+func Concatenate(lists ...*List) (con *List) {
 	last := len(lists) - 1
 	con = lists[last]
 	for i := last - 1; i >= 0; i-- {
-		con = concat(lists[i], con)
+		con = concatenate(lists[i], con)
 	}
 	return
 }

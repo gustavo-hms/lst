@@ -184,3 +184,23 @@ func Partition(l *List, f func(x interface{}) bool) (satisfy, doNot *List) {
 	r := result.([2]*List)
 	return r[0], r[1]
 }
+
+func Unique(l *List) *List {
+	table := make(map[interface{}]bool)
+	unique := Foldl(New(), l, func(acc, x interface{}) interface{} {
+		if _, ok := table[x]; ok {
+			return acc
+		}
+
+		table[x] = true
+		return Cons(x, acc.(*List))
+	}).(*List)
+	return Reverse(unique)
+}
+
+func Delete(x interface{}, l *List) *List {
+	without, with := Span(l, func(y interface{}) bool {
+		return x != y
+	})
+	return Concatenate(without, Tail(with))
+}

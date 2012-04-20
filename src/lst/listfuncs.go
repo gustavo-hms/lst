@@ -198,6 +198,8 @@ func Unique(l *List) *List {
 	return Reverse(unique)
 }
 
+var Nub = Unique
+
 func Delete(x interface{}, l *List) *List {
 	without, with := Span(l, func(y interface{}) bool {
 		return x != y

@@ -75,6 +75,18 @@ func NotElem(elem interface{}, l *List) bool {
 	return !Elem(elem, l)
 }
 
+func ElemIndex(elem interface{}, l *List) (int, bool) {
+	switch {
+	case Empty(l):
+		return -1, false
+	case elem == Head(l):
+		return 0, true
+	}
+
+	i, ok := ElemIndex(elem, Tail(l))
+	return i + 1, ok
+}
+
 func Zip(l1, l2 *List) *List {
 	if Empty(l1) || Empty(l2) {
 		return New()

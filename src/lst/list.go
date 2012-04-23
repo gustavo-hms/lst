@@ -60,6 +60,8 @@ func NewWithElements(elems ...interface{}) (l *List) {
 	return NewFromSlice(elems)
 }
 
+var L = NewWithElements // Apenas por conveniência
+
 func Len(l *List) int {
 	return len(l.elements)
 }
@@ -88,7 +90,7 @@ func MakeIterator(l *List) func() interface{} {
 	index := -1
 	return func() interface{} {
 		index++
-		if index > Len(l) - 1 {
+		if index > Len(l)-1 {
 			return nil
 		}
 		return Get(l, index)
@@ -199,5 +201,5 @@ func Reverse(l *List) (rev *List) {
 	for i := 0; i < Len(l); i++ {
 		rev = Cons(Get(l, i), rev)
 	}
-	return rev
+	return
 }

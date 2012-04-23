@@ -14,19 +14,19 @@ func Foldl1(l *List, f func(acc, value interface{}) interface{}) interface{} {
 	return Foldl(Head(l), Tail(l), f)
 }
 
-func Map(l *List, f func(interface{}) interface{}) interface{} {
+func Map(l *List, f func(interface{}) interface{}) *List {
 	return Foldr(New(), l, func(value, acc interface{}) interface{} {
 		return Cons(f(value), acc.(*List))
-	})
+	}).(*List)
 }
 
-func Filter(l *List, f func(interface{}) bool) interface{} {
+func Filter(l *List, f func(interface{}) bool) *List {
 	return Foldr(New(), l, func(value, acc interface{}) interface{} {
 		if f(value) {
 			return Cons(value, acc.(*List))
 		}
 		return acc
-	})
+	}).(*List)
 }
 
 func IntSum(l *List) int {
@@ -218,5 +218,23 @@ func Difference(base, subtract *List) *List {
 			return acc
 		}
 		return Cons(x, acc.(*List))
+	}).(*List)
+}
+
+func Union(l1, l2 *List) *List {
+	return Concatenate(l1, Difference(l2, l1))
+}
+
+func Intersect(l1, l2 *List) *List {
+	table := make(map[interface{}]bool)
+	next := MakeIterator(l1)
+	for e := next(); e != nil; e = next() {
+		table[e] = true
+	}
+	return Foldr(New(), l2, func(x, acc interface{}) interface{} {
+		if _, ok := table[x]; ok {
+			return Cons(x, acc.(*List))
+		}
+		return acc
 	}).(*List)
 }

@@ -36,9 +36,9 @@ To add 17 to all elements in a list:
 		return elem.(int) + 17
 	})
 
-For Haskell programmers, its worthy noting that here the function to be applied 
-is the last argument. It's a pattern used in this package for all higher order 
-functions, just to be easier to write lambdas.
+For Haskell programmers, it's worthy noting that here the function to be 
+applied is the last argument. It's a pattern used in this package for all 
+higher order functions, just to be easier to write lambdas.
 
 To take only the even elements in a list:
 

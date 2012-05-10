@@ -87,6 +87,18 @@ func ElemIndex(elem interface{}, l *List) (int, bool) {
 	return i + 1, ok
 }
 
+func ElemIndices(elem interface{}, l *List) *List {
+	count := -1
+	indices := Foldl(New(), l, func(acc, x interface{}) interface{} {
+		count++
+		if x == elem {
+			return Cons(count, acc.(*List))
+		}
+		return acc
+	}).(*List)
+	return Reverse(indices)
+}
+
 func Zip(l1, l2 *List) *List {
 	if Empty(l1) || Empty(l2) {
 		return New()

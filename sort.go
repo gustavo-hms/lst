@@ -28,6 +28,10 @@ func (s *sortable) Less(i, j int) bool {
 	return !s.less(s.elements[i], s.elements[j])
 }
 
+/*
+ * Sorts a list based on a function returning true if the “x” element is lesser 
+ * then “y”
+ */
 func SortWith(l *List, order func(x, y interface{}) bool) *List {
 	s := new(sortable)
 	s.elements = make([]interface{}, Len(l))

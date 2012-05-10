@@ -80,7 +80,7 @@ func (l *List) String() string {
 		elems[last-k] = fmt.Sprintf("%v", v)
 	}
 
-	return "[" + strings.Join(elems, " ") + "]"
+	return "[" + strings.Join(elems, ", ") + "]"
 }
 
 func Get(l *List, i int) Elem {

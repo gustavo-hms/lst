@@ -14,7 +14,7 @@ func Foldl1(l *List, f func(acc interface{}, x Elem) interface{}) interface{} {
 	return Foldl(Head(l), Tail(l), f)
 }
 
-func Map(l *List, f func(Elem) interface{}) *List {
+func Map(l *List, f func(Elem) Elem) *List {
 	return Foldr(New(), l, func(x Elem, acc interface{}) interface{} {
 		return Cons(f(x), acc.(*List))
 	}).(*List)

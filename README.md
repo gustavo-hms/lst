@@ -50,7 +50,7 @@ optimisation, this does not allocates extra memory.
 
 To add 17 to all elements in a list:
 
-	added17 := lst.Map(l, func(elem interface{}) interface{} {
+	added17 := lst.Map(l, func(elem lst.Elem) lst.Elem {
 		return elem.(int) + 17
 	})
 
@@ -60,7 +60,7 @@ higher order functions, just to be easier to write lambdas.
 
 To take only the even elements in a list:
 
-	even := lst.Filter(l, func(elem interface{}) bool {
+	even := lst.Filter(l, func(elem lst.Elem) bool {
 		return elem.(int)%2 == 0
 	})
 

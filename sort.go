@@ -11,8 +11,8 @@ import (
  */
 
 type sortable struct {
-	elements []interface{}
-	less     func(interface{}, interface{}) bool
+	elements []Elem
+	less     func(Elem, Elem) bool
 }
 
 func (s *sortable) Len() int {
@@ -32,9 +32,9 @@ func (s *sortable) Less(i, j int) bool {
  * Sorts a list based on a function returning true if the “x” element is lesser 
  * then “y”
  */
-func SortWith(l *List, order func(x, y interface{}) bool) *List {
+func SortWith(l *List, order func(x, y Elem) bool) *List {
 	s := new(sortable)
-	s.elements = make([]interface{}, Len(l))
+	s.elements = make([]Elem, Len(l))
 	copy(s.elements, l.elements)
 	s.less = order
 	sort.Sort(s)

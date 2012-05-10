@@ -6,32 +6,32 @@ func Empty(l *List) bool {
 
 var Null = Empty // Sinônimos
 
-func Foldr1(l *List, f func(value, acc interface{}) interface{}) interface{} {
+func Foldr1(l *List, f func(x Elem, acc interface{}) interface{}) interface{} {
 	return Foldr(Last(l), Init(l), f)
 }
 
-func Foldl1(l *List, f func(acc, value interface{}) interface{}) interface{} {
+func Foldl1(l *List, f func(acc interface{}, x Elem) interface{}) interface{} {
 	return Foldl(Head(l), Tail(l), f)
 }
 
-func Map(l *List, f func(interface{}) interface{}) *List {
-	return Foldr(New(), l, func(value, acc interface{}) interface{} {
-		return Cons(f(value), acc.(*List))
+func Map(l *List, f func(Elem) interface{}) *List {
+	return Foldr(New(), l, func(x Elem, acc interface{}) interface{} {
+		return Cons(f(x), acc.(*List))
 	}).(*List)
 }
 
-func Filter(l *List, f func(interface{}) bool) *List {
-	return Foldr(New(), l, func(value, acc interface{}) interface{} {
-		if f(value) {
-			return Cons(value, acc.(*List))
+func Filter(l *List, f func(Elem) bool) *List {
+	return Foldr(New(), l, func(x Elem, acc interface{}) interface{} {
+		if f(x) {
+			return Cons(x, acc.(*List))
 		}
 		return acc
 	}).(*List)
 }
 
 func IntSum(l *List) int {
-	result := Foldr(0, l, func(e, acc interface{}) interface{} {
-		return acc.(int) + e.(int)
+	result := Foldr(0, l, func(x Elem, acc interface{}) interface{} {
+		return acc.(int) + x.(int)
 	})
 	return result.(int)
 }
@@ -39,15 +39,15 @@ func IntSum(l *List) int {
 var Sum = IntSum
 
 func FloatSum(l *List) float64 {
-	result := Foldr(0, l, func(e, acc interface{}) interface{} {
-		return acc.(float64) + e.(float64)
+	result := Foldr(0, l, func(x Elem, acc interface{}) interface{} {
+		return acc.(float64) + x.(float64)
 	})
 	return result.(float64)
 }
 
 func IntProd(l *List) int {
-	result := Foldr(1, l, func(e, acc interface{}) interface{} {
-		return acc.(int) * e.(int)
+	result := Foldr(1, l, func(x Elem, acc interface{}) interface{} {
+		return acc.(int) * x.(int)
 	})
 	return result.(int)
 }
@@ -55,43 +55,43 @@ func IntProd(l *List) int {
 var Prod = IntProd
 
 func FloatProd(l *List) float64 {
-	result := Foldr(1, l, func(e, acc interface{}) interface{} {
-		return acc.(float64) * e.(float64)
+	result := Foldr(1, l, func(x Elem, acc interface{}) interface{} {
+		return acc.(float64) * x.(float64)
 	})
 	return result.(float64)
 }
 
-func Elem(elem interface{}, l *List) bool {
+func Element(x Elem, l *List) bool {
 	switch {
 	case Empty(l):
 		return false
-	case elem == Head(l):
+	case x == Head(l):
 		return true
 	}
-	return Elem(elem, Tail(l))
+	return Element(x, Tail(l))
 }
 
-func NotElem(elem interface{}, l *List) bool {
-	return !Elem(elem, l)
+func NotElement(x Elem, l *List) bool {
+	return !Element(x, l)
 }
 
-func ElemIndex(elem interface{}, l *List) (int, bool) {
+func ElemIndex(x Elem, l *List) (int, bool) {
 	switch {
 	case Empty(l):
 		return -1, false
-	case elem == Head(l):
+	case x == Head(l):
 		return 0, true
 	}
 
-	i, ok := ElemIndex(elem, Tail(l))
+	i, ok := ElemIndex(x, Tail(l))
 	return i + 1, ok
 }
 
-func ElemIndices(elem interface{}, l *List) *List {
+func ElemIndices(x Elem, l *List) *List {
 	count := -1
-	indices := Foldl(New(), l, func(acc, x interface{}) interface{} {
+	indices := Foldl(New(), l, func(acc interface{}, y Elem) interface{} {
 		count++
-		if x == elem {
+		if y == x {
 			return Cons(count, acc.(*List))
 		}
 		return acc
@@ -103,17 +103,17 @@ func Zip(l1, l2 *List) *List {
 	if Empty(l1) || Empty(l2) {
 		return New()
 	}
-	return Cons(NewWithElements(Head(l1), Head(l2)), Zip(Tail(l1), Tail(l2)))
+	return Cons(L(Head(l1), Head(l2)), Zip(Tail(l1), Tail(l2)))
 }
 
-func ZipWith(l1, l2 *List, f func(x, y interface{}) interface{}) *List {
+func ZipWith(l1, l2 *List, f func(x, y Elem) interface{}) *List {
 	if Empty(l1) || Empty(l2) {
 		return New()
 	}
 	return Cons(f(Head(l1), Head(l2)), ZipWith(Tail(l1), Tail(l2), f))
 }
 
-func TakeWhile(l *List, f func(x interface{}) bool) *List {
+func TakeWhile(l *List, f func(x Elem) bool) *List {
 	if Empty(l) {
 		return New()
 	}
@@ -125,7 +125,7 @@ func TakeWhile(l *List, f func(x interface{}) bool) *List {
 	return New()
 }
 
-func DropWhile(l *List, f func(x interface{}) bool) *List {
+func DropWhile(l *List, f func(x Elem) bool) *List {
 	if Empty(l) {
 		return New()
 	}
@@ -137,45 +137,45 @@ func DropWhile(l *List, f func(x interface{}) bool) *List {
 	return l
 }
 
-func Span(l *List, f func(x interface{}) bool) (first, rest *List) {
+func Span(l *List, f func(x Elem) bool) (first, rest *List) {
 	return TakeWhile(l, f), DropWhile(l, f)
 }
 
 func Flatten(l *List) *List {
-	return Foldr1(l, func(value, acc interface{}) interface{} {
-		return Concatenate(value.(*List), acc.(*List))
+	return Foldr1(l, func(x Elem, acc interface{}) interface{} {
+		return Concatenate(x.(*List), acc.(*List))
 	}).(*List)
 }
 
 var Concat = Flatten
 
 func And(l *List) bool {
-	return Foldr1(l, func(value, acc interface{}) interface{} {
-		return value.(bool) && acc.(bool)
+	return Foldr1(l, func(x Elem, acc interface{}) interface{} {
+		return x.(bool) && acc.(bool)
 	}).(bool)
 }
 
 func Or(l *List) bool {
-	return Foldr1(l, func(value, acc interface{}) interface{} {
-		return value.(bool) || acc.(bool)
+	return Foldr1(l, func(x Elem, acc interface{}) interface{} {
+		return x.(bool) || acc.(bool)
 	}).(bool)
 }
 
-func Any(l *List, f func(x interface{}) bool) bool {
-	return Foldr(false, l, func(value, acc interface{}) interface{} {
-		return f(value) || acc.(bool)
+func Any(l *List, f func(Elem) bool) bool {
+	return Foldr(false, l, func(x Elem, acc interface{}) interface{} {
+		return f(x) || acc.(bool)
 	}).(bool)
 }
 
-func All(l *List, f func(x interface{}) bool) bool {
-	return Foldr(true, l, func(value, acc interface{}) interface{} {
-		return f(value) && acc.(bool)
+func All(l *List, f func(Elem) bool) bool {
+	return Foldr(true, l, func(x Elem, acc interface{}) interface{} {
+		return f(x) && acc.(bool)
 	}).(bool)
 }
 
 func Group(l *List) *List {
 	vec := [2]*List{New(), New()} // {final list, sublist}
-	result := Foldr(vec, l, func(x, acc interface{}) interface{} {
+	result := Foldr(vec, l, func(x Elem, acc interface{}) interface{} {
 		v := acc.([2]*List)
 		switch {
 		case Empty(v[1]):
@@ -193,9 +193,9 @@ func Group(l *List) *List {
 	return Cons(r[1], r[0])
 }
 
-func Partition(l *List, f func(x interface{}) bool) (satisfy, doNot *List) {
+func Partition(l *List, f func(Elem) bool) (satisfy, doNot *List) {
 	vec := [2]*List{New(), New()} // {satisfy, doNot}
-	result := Foldr(vec, l, func(x, acc interface{}) interface{} {
+	result := Foldr(vec, l, func(x Elem, acc interface{}) interface{} {
 		v := acc.([2]*List)
 		if f(x) {
 			v[0], v[1] = Cons(x, v[0]), v[1]
@@ -210,8 +210,8 @@ func Partition(l *List, f func(x interface{}) bool) (satisfy, doNot *List) {
 }
 
 func Unique(l *List) *List {
-	table := make(map[interface{}]bool)
-	unique := Foldl(New(), l, func(acc, x interface{}) interface{} {
+	table := make(map[Elem]bool)
+	unique := Foldl(New(), l, func(acc interface{}, x Elem) interface{} {
 		if _, ok := table[x]; ok {
 			return acc
 		}
@@ -224,20 +224,20 @@ func Unique(l *List) *List {
 
 var Nub = Unique
 
-func Delete(x interface{}, l *List) *List {
-	without, with := Span(l, func(y interface{}) bool {
+func Delete(x Elem, l *List) *List {
+	without, with := Span(l, func(y Elem) bool {
 		return x != y
 	})
 	return Concatenate(without, Tail(with))
 }
 
 func Difference(base, subtract *List) *List {
-	table := make(map[interface{}]bool)
+	table := make(map[Elem]bool)
 	next := MakeIterator(subtract)
 	for e := next(); e != nil; e = next() {
 		table[e] = true
 	}
-	return Foldr(New(), base, func(x, acc interface{}) interface{} {
+	return Foldr(New(), base, func(x Elem, acc interface{}) interface{} {
 		if _, ok := table[x]; ok {
 			return acc
 		}
@@ -250,12 +250,12 @@ func Union(l1, l2 *List) *List {
 }
 
 func Intersect(l1, l2 *List) *List {
-	table := make(map[interface{}]bool)
+	table := make(map[Elem]bool)
 	next := MakeIterator(l1)
 	for e := next(); e != nil; e = next() {
 		table[e] = true
 	}
-	return Foldr(New(), l2, func(x, acc interface{}) interface{} {
+	return Foldr(New(), l2, func(x Elem, acc interface{}) interface{} {
 		if _, ok := table[x]; ok {
 			return Cons(x, acc.(*List))
 		}

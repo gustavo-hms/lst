@@ -10,15 +10,17 @@ import (
 	"strings"
 )
 
+type Elem interface{}
+
 type List struct {
-	elements   []interface{}
+	elements   []Elem
 	firstEmpty *int // O primeiro índice vazio no vetor a que o slice faz referência
 	firstUsed  int  // O primeiro índice que o slice enxerga no vetor
 }
 
 func New() *List {
 	l := new(List)
-	var vec [64]interface{}
+	var vec [64]Elem
 	l.elements = vec[0:0]
 	var i int
 	l.firstEmpty = &i
@@ -34,18 +36,18 @@ func NewFromList(original *List) (dest *List) {
 	return
 }
 
-func newFromAlreadyReversedSlice(slice []interface{}) (l *List) {
+func newFromAlreadyReversedSlice(slice []Elem) (l *List) {
 	l = new(List)
-	l.elements = make([]interface{}, len(slice))
+	l.elements = make([]Elem, len(slice))
 	copy(l.elements, slice) // Copiando para evitar modificações inadvertidas
 	i := len(slice)
 	l.firstEmpty = &i
 	return
 }
 
-func NewFromSlice(slice []interface{}) (l *List) {
+func NewFromSlice(slice []Elem) (l *List) {
 	l = new(List)
-	l.elements = make([]interface{}, len(slice))
+	l.elements = make([]Elem, len(slice))
 
 	for k, v := range slice {
 		set(l, k, v)
@@ -56,7 +58,7 @@ func NewFromSlice(slice []interface{}) (l *List) {
 	return
 }
 
-func NewWithElements(elems ...interface{}) (l *List) {
+func NewWithElements(elems ...Elem) (l *List) {
 	return NewFromSlice(elems)
 }
 
@@ -81,14 +83,14 @@ func (l *List) String() string {
 	return "[" + strings.Join(elems, " ") + "]"
 }
 
-func Get(l *List, i int) interface{} {
+func Get(l *List, i int) Elem {
 	last := Len(l) - 1
 	return l.elements[last-i]
 }
 
-func MakeIterator(l *List) func() interface{} {
+func MakeIterator(l *List) func() Elem {
 	index := -1
-	return func() interface{} {
+	return func() Elem {
 		index++
 		if index > Len(l)-1 {
 			return nil
@@ -97,12 +99,12 @@ func MakeIterator(l *List) func() interface{} {
 	}
 }
 
-func set(l *List, i int, value interface{}) {
+func set(l *List, i int, value Elem) {
 	last := Len(l) - 1
 	l.elements[last-i] = value
 }
 
-func Head(l *List) interface{} {
+func Head(l *List) Elem {
 	return Get(l, 0)
 }
 
@@ -114,7 +116,7 @@ func Tail(l *List) (tailList *List) {
 	return
 }
 
-func Last(l *List) interface{} {
+func Last(l *List) Elem {
 	return Get(l, Len(l)-1)
 }
 
@@ -126,7 +128,7 @@ func Init(l *List) (initList *List) {
 	return
 }
 
-func Cons(value interface{}, l *List) (newl *List) {
+func Cons(value Elem, l *List) (newl *List) {
 	newl = new(List)
 	/*
 	 * O vetor que efetivamente armazena os elementos da lista pode ser 
@@ -176,7 +178,7 @@ func Concatenate(lists ...*List) (con *List) {
 	return
 }
 
-func Foldr(init interface{}, l *List, f func(value, acc interface{}) interface{}) (accum interface{}) {
+func Foldr(init interface{}, l *List, f func(value Elem, acc interface{}) interface{}) (accum interface{}) {
 	accum = init
 	for _, v := range l.elements {
 		accum = f(v, accum)
@@ -184,7 +186,7 @@ func Foldr(init interface{}, l *List, f func(value, acc interface{}) interface{}
 	return
 }
 
-func Foldl(init interface{}, l *List, f func(acc, value interface{}) interface{}) (accum interface{}) {
+func Foldl(init interface{}, l *List, f func(acc interface{}, value Elem) interface{}) (accum interface{}) {
 	accum = init
 	for i := 0; i < Len(l); i++ {
 		accum = f(accum, Get(l, i))

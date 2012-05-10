@@ -106,7 +106,7 @@ func Zip(l1, l2 *List) *List {
 	return Cons(L(Head(l1), Head(l2)), Zip(Tail(l1), Tail(l2)))
 }
 
-func ZipWith(l1, l2 *List, f func(x, y Elem) interface{}) *List {
+func ZipWith(l1, l2 *List, f func(x, y Elem) Elem) *List {
 	if Empty(l1) || Empty(l2) {
 		return New()
 	}

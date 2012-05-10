@@ -18,13 +18,31 @@ is handled automatically by the package.
 Usage
 -----
 
-To create a new list, type:
+### Creating a new list
+
+To create a new empty list, type:
 
 	l := lst.New()
+
+You can also create a list filled with predefined elements:
+
+	l := lst.NewWithElements(1, 2, 3, 4)
+
+Or, as a shorthand,
+
+	l := lst.L(1, 2, 3, 4)
+
+If you want to use the elements of a slice:
+
+	l := lst.NewFromSlice(aSlice)
+
+### Adding elements
 
 To add elements, use the Cons function:
 
 	l := lst.Cons(element, l)
+
+### Manipulation
 
 Note that a list is never modified in place. Instead, a new list is created 
 each time an operation is executed. Since the package uses copy on write 

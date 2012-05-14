@@ -22,8 +22,7 @@ func New() *List {
 	l := new(List)
 	var vec [64]Elem
 	l.elements = vec[0:0]
-	var i int
-	l.firstEmpty = &i
+	l.firstEmpty = new(int)
 
 	return l
 }
@@ -36,7 +35,7 @@ func NewFromList(original *List) (dest *List) {
 	return
 }
 
-func newFromAlreadyReversedSlice(slice []Elem) (l *List) {
+func newFromReversedSlice(slice []Elem) (l *List) {
 	l = new(List)
 	l.elements = make([]Elem, len(slice))
 	copy(l.elements, slice) // Copiando para evitar modificações inadvertidas
@@ -88,6 +87,11 @@ func Get(l *List, i int) Elem {
 	return l.elements[last-i]
 }
 
+func set(l *List, i int, x Elem) {
+	last := Len(l) - 1
+	l.elements[last-i] = x
+}
+
 func MakeIterator(l *List) func() Elem {
 	index := -1
 	return func() Elem {
@@ -99,9 +103,15 @@ func MakeIterator(l *List) func() Elem {
 	}
 }
 
-func set(l *List, i int, value Elem) {
-	last := Len(l) - 1
-	l.elements[last-i] = value
+func MakeReverseIterator(l *List) func() Elem {
+	index := Len(l)
+	return func() Elem {
+		index--
+		if index < 0 {
+			return nil
+		}
+		return Get(l, index)
+	}
 }
 
 func Head(l *List) Elem {
@@ -128,8 +138,7 @@ func Init(l *List) (initList *List) {
 	return
 }
 
-func Cons(value Elem, l *List) (newl *List) {
-	newl = new(List)
+func Cons(x Elem, l *List) (newl *List) {
 	/*
 	 * O vetor que efetivamente armazena os elementos da lista pode ser 
 	 * compartilhado por diversas listas. Assim, é preciso ter cuidado ao 
@@ -140,7 +149,7 @@ func Cons(value Elem, l *List) (newl *List) {
 	if *l.firstEmpty > Len(l)+l.firstUsed {
 		// Neste caso, a posição desejada do vetor já está sendo ocupada. É
 		// necessário fazer uma cópia portanto
-		newl = newFromAlreadyReversedSlice(l.elements)
+		newl = newFromReversedSlice(l.elements)
 	} else {
 		newl = NewFromList(l)
 	}
@@ -155,7 +164,7 @@ func Cons(value Elem, l *List) (newl *List) {
 		*newl.firstEmpty++
 	}
 
-	newl.elements = append(newl.elements, value)
+	newl.elements = append(newl.elements, x)
 	return
 }
 
@@ -178,7 +187,7 @@ func Concatenate(lists ...*List) (con *List) {
 	return
 }
 
-func Foldr(init interface{}, l *List, f func(value Elem, acc interface{}) interface{}) (accum interface{}) {
+func Foldr(init interface{}, l *List, f func(Elem, interface{}) interface{}) (accum interface{}) {
 	accum = init
 	for _, v := range l.elements {
 		accum = f(v, accum)
@@ -186,7 +195,7 @@ func Foldr(init interface{}, l *List, f func(value Elem, acc interface{}) interf
 	return
 }
 
-func Foldl(init interface{}, l *List, f func(acc interface{}, value Elem) interface{}) (accum interface{}) {
+func Foldl(init interface{}, l *List, f func(interface{}, Elem) interface{}) (accum interface{}) {
 	accum = init
 	for i := 0; i < Len(l); i++ {
 		accum = f(accum, Get(l, i))

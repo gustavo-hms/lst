@@ -87,16 +87,21 @@ func ElemIndex(x Elem, l *List) (int, bool) {
 	return i + 1, ok
 }
 
-func ElemIndices(x Elem, l *List) *List {
+func ElemIndices(x Elem, xs *List) *List {
 	count := -1
-	indices := Foldl(New(), l, func(acc interface{}, y Elem) interface{} {
-		count++
-		if y == x {
-			return Cons(count, acc.(*List))
-		}
-		return acc
-	}).(*List)
-	return Reverse(indices)
+	return indices(x, xs, count)
+}
+
+func indices(y Elem, ys *List, count int) *List {
+	if Empty(ys) {
+		return ys
+	}
+
+	count++
+	if Head(ys) == y {
+		return Cons(count, indices(y, Tail(ys), count))
+	}
+	return indices(y, Tail(ys), count)
 }
 
 func Zip(l1, l2 *List) *List {
@@ -211,15 +216,21 @@ func Partition(l *List, f func(Elem) bool) (satisfy, doNot *List) {
 
 func Unique(l *List) *List {
 	table := make(map[Elem]bool)
-	unique := Foldl(New(), l, func(acc interface{}, x Elem) interface{} {
-		if _, ok := table[x]; ok {
-			return acc
-		}
+	return unique(l, table)
+}
 
-		table[x] = true
-		return Cons(x, acc.(*List))
-	}).(*List)
-	return Reverse(unique)
+func unique(l *List, table map[Elem]bool) *List {
+	if Empty(l) {
+		return l
+	}
+
+	head := Head(l)
+	if _, ok := table[head]; ok {
+		return unique(Tail(l), table)
+	}
+
+	table[head] = true
+	return Cons(head, unique(Tail(l), table))
 }
 
 var Nub = Unique

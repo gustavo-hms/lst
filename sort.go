@@ -32,11 +32,11 @@ func (s *sortable) Less(i, j int) bool {
  * Sorts a list based on a function returning true if the “x” element is lesser 
  * then “y”
  */
-func SortWith(l *List, order func(x, y Elem) bool) *List {
+func SortWith(l *List, less func(x, y Elem) bool) *List {
 	s := new(sortable)
 	s.elements = make([]Elem, Len(l))
 	copy(s.elements, l.elements)
-	s.less = order
+	s.less = less
 	sort.Sort(s)
-	return newFromAlreadyReversedSlice(s.elements)
+	return newFromReversedSlice(s.elements)
 }

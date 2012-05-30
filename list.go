@@ -1,9 +1,24 @@
-package lst
-
 /*
- * Este arquivo contém a definição da estrutura List, bem como todas as funções 
- * que dependem de algum conhecimento mais interno dessa estrutura
+ * Package lst provides an implementation of lists using shared vectors.
+ *
+ * To create a new empty list, type:
+ *
+ * 	l := lst.New()
+ *
+ * You can also create a list filled with predefined elements:
+ *
+ * 	l := lst.NewWithElements(1, 2, 3, 4)
+ * 
+ * Or, as a shorthand,
+ *
+ * 	l := lst.L(1, 2, 3, 4)
+ *
+ * If you want to use the elements of a slice:
+ * 
+ * 	l := lst.NewFromSlice(aSlice)
  */
+
+package lst
 
 import (
 	"fmt"
@@ -14,13 +29,14 @@ type Elem interface{}
 
 type List struct {
 	elements   []Elem
-	firstEmpty *int // O primeiro índice vazio no vetor a que o slice faz referência
-	firstUsed  int  // O primeiro índice que o slice enxerga no vetor
+	// See Cons function for a better understanding of the following 2 fields
+	firstEmpty *int
+	firstUsed  int
 }
 
 func New() *List {
 	l := new(List)
-	var vec [64]Elem
+	var vec [16]Elem
 	l.elements = vec[0:0]
 	l.firstEmpty = new(int)
 
@@ -38,9 +54,8 @@ func NewFromList(original *List) (dest *List) {
 func newFromReversedSlice(slice []Elem) (l *List) {
 	l = new(List)
 	l.elements = make([]Elem, len(slice))
-	copy(l.elements, slice) // Copiando para evitar modificações inadvertidas
-	i := len(slice)
-	l.firstEmpty = &i
+	copy(l.elements, slice)
+	l.firstEmpty = &len(slice)
 	return
 }
 
@@ -61,7 +76,7 @@ func NewWithElements(elems ...Elem) (l *List) {
 	return NewFromSlice(elems)
 }
 
-var L = NewWithElements // Apenas por conveniência
+var L = NewWithElements // Just for convenience
 
 func Len(l *List) int {
 	return len(l.elements)

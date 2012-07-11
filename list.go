@@ -55,7 +55,8 @@ func newFromReversedSlice(slice []Elem) (l *List) {
 	l = new(List)
 	l.elements = make([]Elem, len(slice))
 	copy(l.elements, slice)
-	l.firstEmpty = &len(slice)
+	length := len(slice)
+	l.firstEmpty = &length
 	return
 }
 
@@ -183,25 +184,6 @@ func Cons(x Elem, l *List) (newl *List) {
 	return
 }
 
-func concatenate(l1, l2 *List) (con *List) {
-	if Len(l1) == 0 {
-		con = NewFromList(l2)
-		return
-	}
-
-	con = Cons(Head(l1), concatenate(Tail(l1), l2))
-	return
-}
-
-func Concatenate(lists ...*List) (con *List) {
-	last := len(lists) - 1
-	con = lists[last]
-	for i := last - 1; i >= 0; i-- {
-		con = concatenate(lists[i], con)
-	}
-	return
-}
-
 func Foldr(init interface{}, l *List, f func(Elem, interface{}) interface{}) (accum interface{}) {
 	accum = init
 	for _, v := range l.elements {
@@ -217,6 +199,23 @@ func Foldl(init interface{}, l *List, f func(interface{}, Elem) interface{}) (ac
 	}
 	return
 }
+
+func concatenate(l1, l2 *List) (con *List) {
+	cons := func(x Elem, accum interface{}) interface{} {
+		return Cons(x, accum.(*List))
+	}
+	return Foldr(l2, l1, cons).(*List)
+}
+
+func Concatenate(lists ...*List) (con *List) {
+	last := len(lists) - 1
+	con = lists[last]
+	for i := last - 1; i >= 0; i-- {
+		con = concatenate(lists[i], con)
+	}
+	return
+}
+
 
 /*
  * A função Reverse foi colocada neste arquivo por eficiência: implantá-la como 

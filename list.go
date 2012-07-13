@@ -214,16 +214,3 @@ func Concatenate(lists ...*List) (con *List) {
 	}
 	return
 }
-
-
-/*
- * A função Reverse foi colocada neste arquivo por eficiência: implantá-la como 
- * uma função recursiva usando concatenação é muito oneroso
- */
-func Reverse(l *List) (rev *List) {
-	rev = New()
-	for i := 0; i < Len(l); i++ {
-		rev = Cons(Get(l, i), rev)
-	}
-	return
-}

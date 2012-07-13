@@ -1,5 +1,11 @@
 package lst
 
+func Reverse(l *List) *List {
+	return Foldl(New(), l, func(xs interface{}, x Elem) interface{} {
+		return Cons(x, xs.(*List))
+	}).(*List)
+}
+
 func Empty(l *List) bool {
 	return Len(l) <= 0
 }

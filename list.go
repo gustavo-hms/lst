@@ -1,23 +1,22 @@
 /*
- * Package lst provides an implementation of lists using shared vectors.
- *
- * To create a new empty list, type:
- *
- * 	l := lst.New()
- *
- * You can also create a list filled with predefined elements:
- *
- * 	l := lst.NewWithElements(1, 2, 3, 4)
- * 
- * Or, as a shorthand,
- *
- * 	l := lst.L(1, 2, 3, 4)
- *
- * If you want to use the elements of a slice:
- * 
- * 	l := lst.NewFromSlice(aSlice)
+   Package lst provides an implementation of lists using shared vectors.
+  
+   To create a new empty list, type:
+  
+   	l := lst.New()
+  
+   You can also create a list filled with predefined elements:
+  
+   	l := lst.NewWithElements(1, 2, 3, 4)
+   
+   Or, as a shorthand,
+  
+   	l := lst.L(1, 2, 3, 4)
+  
+   If you want to use the elements of a slice:
+   
+   	l := lst.NewFromSlice(aSlice)
  */
-
 package lst
 
 import (

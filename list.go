@@ -1,22 +1,22 @@
 /*
    Package lst provides an implementation of lists using shared vectors.
-  
+
    To create a new empty list, type:
-  
+
    	l := lst.New()
-  
+
    You can also create a list filled with predefined elements:
-  
+
    	l := lst.NewWithElements(1, 2, 3, 4)
-   
+
    Or, as a shorthand,
-  
+
    	l := lst.L(1, 2, 3, 4)
-  
+
    If you want to use the elements of a slice:
-   
+
    	l := lst.NewFromSlice(aSlice)
- */
+*/
 package lst
 
 import (
@@ -27,7 +27,7 @@ import (
 type Elem interface{}
 
 type List struct {
-	elements   []Elem
+	elements []Elem
 	// See Cons function for a better understanding of the following 2 fields
 	firstEmpty *int
 	firstUsed  int
@@ -35,8 +35,7 @@ type List struct {
 
 func New() *List {
 	l := new(List)
-	var vec [16]Elem
-	l.elements = vec[0:0]
+	l.elements = make([]Elem, 0)
 	l.firstEmpty = new(int)
 
 	return l

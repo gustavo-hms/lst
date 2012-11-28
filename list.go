@@ -106,6 +106,15 @@ func set(l *List, i int, x Elem) {
 	l.elements[last-i] = x
 }
 
+// MakeIterator creates a function one can use to iterate over the elements of 
+// the list. A "nil" value signalises the end of the loop.
+//
+// Example:
+//
+// next := MakeIterator(list)
+// for element := next(); element != nil; element = next() {
+// 	do something
+// }
 func MakeIterator(l *List) func() Elem {
 	index := -1
 	return func() Elem {
@@ -117,6 +126,16 @@ func MakeIterator(l *List) func() Elem {
 	}
 }
 
+// MakeReverseIterator creates a function one can use to iterate over the 
+// elements of the list in the reverse order. A "nil" value signalises the end 
+// of the loop.
+//
+// Example:
+//
+// previous := MakeIterator(list)
+// for element := previous(); element != nil; element = previous() {
+// 	do something
+// }
 func MakeReverseIterator(l *List) func() Elem {
 	index := Len(l)
 	return func() Elem {
@@ -128,10 +147,12 @@ func MakeReverseIterator(l *List) func() Elem {
 	}
 }
 
+// Gets the head of the list (its most recently inserted element)
 func Head(l *List) Elem {
 	return Get(l, 0)
 }
 
+// Gets all but the head of the list
 func Tail(l *List) (tailList *List) {
 	tailList = new(List)
 	tailList.elements = l.elements[:Len(l)-1]
@@ -140,10 +161,12 @@ func Tail(l *List) (tailList *List) {
 	return
 }
 
+// Gets the last element of the list (the first inserted element)
 func Last(l *List) Elem {
 	return Get(l, Len(l)-1)
 }
 
+// Gets all but the last element of the list
 func Init(l *List) (initList *List) {
 	initList = new(List)
 	initList.elements = l.elements[1:]
@@ -152,6 +175,16 @@ func Init(l *List) (initList *List) {
 	return
 }
 
+// The list constructor. It constructs a new list by inserting a new element in
+// the front of an old one.
+//
+// Example:
+//
+// first := New()
+//
+// second := Cons(1, first)
+//
+// third := Cons(2, second)
 func Cons(x Elem, l *List) (newl *List) {
 	/*
 	 * O vetor que efetivamente armazena os elementos da lista pode ser 
@@ -182,6 +215,19 @@ func Cons(x Elem, l *List) (newl *List) {
 	return
 }
 
+// Foldr makes a fold in the list from right to left. For each element, it 
+// applies the function f given in its third argument as f(e, acc), where e is 
+// the current element in the list, and acc is the value returned by f in the 
+// previous iteration. In its first iteration, it uses the value in "init" as 
+// the value for "acc".
+//
+// Example:
+//
+// l := NewWithElements(1, 2, 3, 4)
+//
+// sum := Foldr(0, l, func(x Elem, acc interface{}) interface{} {
+// 	return x.(int) + acc.(int)
+// })
 func Foldr(init interface{}, l *List, f func(Elem, interface{}) interface{}) (accum interface{}) {
 	accum = init
 	for _, v := range l.elements {
@@ -190,6 +236,21 @@ func Foldr(init interface{}, l *List, f func(Elem, interface{}) interface{}) (ac
 	return
 }
 
+// Similar to Foldr, Foldl makes a fold in the list left to right.  For each 
+// element, it applies the function f given in its third argument as f(acc, e), 
+// where e is the current element in the list, and acc is the value returned by 
+// f in the previous iteration. In its first iteration, it uses the value in 
+// "init" as the value for "acc".
+//
+// Example:
+//
+// l := NewWithElements(1, 2, 3, 4)
+//
+// sum := Foldr(0, l, func(acc interface{}, x Elem) interface{} {
+// 	return x.(int) + acc.(int)
+// })
+//
+// -> sum = 11
 func Foldl(init interface{}, l *List, f func(interface{}, Elem) interface{}) (accum interface{}) {
 	accum = init
 	for i := 0; i < Len(l); i++ {
@@ -205,6 +266,16 @@ func concatenate(l1, l2 *List) (con *List) {
 	return Foldr(l2, l1, cons).(*List)
 }
 
+// Concatenates all the lists given as arguments.
+//
+// Example:
+//
+// l1 := NewWithElements(1, 2)
+// l2 := NewWithElements(3, 4)
+// l3 := NewWithElements(5, 6)
+// c := Concatenate(l1, l2, l3)
+//
+// -> c = [1, 2, 3, 4, 5, 6]
 func Concatenate(lists ...*List) (con *List) {
 	last := len(lists) - 1
 	con = lists[last]

@@ -5,9 +5,8 @@ import (
 )
 
 /*
- * Para poder usar o pacote sort, é necessária uma estrutura em conformidade 
- * com a interface definida lá. Os métodos Len e Swap podem ter uma implantação 
- * default sem problemas, mas o Less precisa ser escrito pelo usuário.
+ * To use package sort, one needs a structure conforming its interface. The Len 
+ * and Swap methods are trivial, but Less needs to be given by the user
  */
 
 type sortable struct {
@@ -24,7 +23,7 @@ func (s *sortable) Swap(i, j int) {
 }
 
 func (s *sortable) Less(i, j int) bool {
-	// O slice precisa estar ordenado em ordem inversa. Por isso a negação
+	// The slice needs to be in reverse order. So, the negation
 	return !s.less(s.elements[i], s.elements[j])
 }
 

@@ -405,3 +405,45 @@ func TestAny(t *testing.T) {
 		t.Error("Returning false for a true statement")
 	}
 }
+
+func TestGroup(t *testing.T) {
+	l := NewFromSlice(elements[:])
+	group := Group(l)
+
+	consistent := All(group, func(x Elem) bool {
+		return All(x.(*List), func(y Elem) bool {
+			return y == Head(x.(*List))
+		})
+	})
+
+	if !consistent {
+		t.Error("Elements are not all equal inside groups")
+	}
+}
+
+func TestPartition(t *testing.T) {
+	l := NewFromSlice(elements[:])
+	lessThan3, notLessThan3 := Partition(l, func(x Elem) bool {
+		return x.(int) < 3
+	})
+
+	if Len(lessThan3)+Len(notLessThan3) != N {
+		t.Error("Partition is dropping or inserting elements")
+	}
+
+	notLess := Any(lessThan3, func(x Elem) bool {
+		return x.(int) >= 3
+	})
+
+	if notLess {
+		t.Error("Not all elements in the first list respect the predicate")
+	}
+
+	less := Any(notLessThan3, func(x Elem) bool {
+		return x.(int) < 3
+	})
+
+	if less {
+		t.Error("Not all elements in the second list respect the predicate")
+	}
+}

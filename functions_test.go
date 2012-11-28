@@ -292,3 +292,32 @@ func TestSpan(t *testing.T) {
 		t.Errorf("Second list has %d elements instead of %d", Len(l2), 10)
 	}
 }
+
+func TestFlatten(t *testing.T) {
+	l1 := NewFromSlice(elements[:N/2])
+	l2 := NewFromSlice(elements[N/2:])
+
+	zip := Zip(l1, l2)
+	flat := Flatten(zip)
+
+	var min int
+	if Len(l1) < Len(l2) {
+		min = Len(l1)
+	} else {
+		min = Len(l2)
+	}
+	if Len(flat) != 2*min {
+		t.Errorf("List has %d elements instead of %d", Len(flat), 2*min)
+	}
+
+	for i := 0; i < min; i++ {
+		if Get(flat, 2*i) != Get(l1, i) {
+			t.Errorf("Mismatched elements at index %d", 2*i)
+			break
+		}
+		if Get(flat, 2*i+1) != Get(l2, i) {
+			t.Errorf("Mismatched elements at index %d", 2*i+1)
+			break
+		}
+	}
+}

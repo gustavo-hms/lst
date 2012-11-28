@@ -512,3 +512,33 @@ func TestUnique(t *testing.T) {
 		t.Error("Repeated elements found")
 	}
 }
+
+func TestDelete(t *testing.T) {
+	l := NewFromSlice(elements[:])
+	elem := Get(l, N-3)
+	set(l, N-5, elem)
+	occurrencesBefore := Len(ElemIndices(elem, l))
+	del := Delete(elem, l)
+	occurrencesAfter := Len(ElemIndices(elem, del))
+
+	if occurrencesAfter != occurrencesBefore-1 {
+		t.Errorf("Did not deleted element rightly. Before: %d; after: %d", occurrencesBefore, occurrencesAfter)
+	}
+}
+
+func TestDifference(t *testing.T) {
+	base := NewFromSlice(elements[:])
+	subtract := NewFromSlice(elements[N/3 : 2*N/3])
+	difference := Difference(base, subtract)
+
+	err := Any(base, func(x Elem) bool {
+		if Element(x, subtract) {
+			return Element(x, difference)
+		}
+		return NotElement(x, difference)
+	})
+
+	if err {
+		t.Error("Diff list with inconsistent data")
+	}
+}

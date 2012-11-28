@@ -189,6 +189,17 @@ func ZipWith(l1, l2 *List, f func(x, y Elem) Elem) *List {
 	return Cons(f(Head(l1), Head(l2)), ZipWith(Tail(l1), Tail(l2), f))
 }
 
+// TakeWhile creates a new list using the elements of the original one. It will 
+// keep the original elements while the predicate given as argument is valid.  
+// After that, all elements of the original list are discarded.
+//
+// Example:
+// l1 := L(1, 2, 3, 2, 5, 4, 3, 9, 1)
+// l2 := TakeWhile(l1, func(x Elem) bool {
+// 	return x.(int) < 5
+// })
+//
+// -> l2 = [1, 2, 3, 2]
 func TakeWhile(l *List, f func(x Elem) bool) *List {
 	if Empty(l) {
 		return New()
@@ -201,6 +212,18 @@ func TakeWhile(l *List, f func(x Elem) bool) *List {
 	return New()
 }
 
+// DropWhile, like TakeWhile, creates a new list using the elements of the 
+// original one.  Unlike TakeWhile, however, it will drop the original elements 
+// while the predicate given as argument is valid. The remaining elements are 
+// used to create the new list.
+//
+// Example:
+// l1 := L(1, 2, 3, 2, 5, 4, 3, 9, 1)
+// l2 := DropWhile(l1, func(x Elem) bool {
+// 	return x.(int) < 5
+// })
+//
+// -> l2 = [5, 4, 3, 9, 1]
 func DropWhile(l *List, f func(x Elem) bool) *List {
 	if Empty(l) {
 		return New()
@@ -213,42 +236,122 @@ func DropWhile(l *List, f func(x Elem) bool) *List {
 	return l
 }
 
+// Span breaks the original list in two when it finds an element for which the 
+// predicate doesn't hold: the first one are the ones it keeps from the 
+// original list while the predicate holds; the second one are the remaining 
+// elements.
+//
+// Example:
+//
+// l := L(1, 2, 3, 2, 5, 4, 3, 9, 1)
+// l1, l2 := Span(l, func(x Elem) bool {
+// 	return x.(int) < 5
+// })
+//
+// -> l1 = [1, 2, 3, 2]
+//    l2 = [5, 4, 3, 9, 1]
 func Span(l *List, f func(x Elem) bool) (first, rest *List) {
+	// TODO This implementation is inefficient. Write a new one.
 	return TakeWhile(l, f), DropWhile(l, f)
 }
 
+// Flatten takes a list of lists and transforms it in a flat list.
+//
+// Example:
+//
+// l := L(L(1,2), L(3, 4))
+// -> l = [[1,2], [3,4]]
+// flat := Flatten(l)
+// -> flat = [1, 2, 3, 4]
 func Flatten(l *List) *List {
 	return Foldr1(l, func(x Elem, acc interface{}) interface{} {
 		return Concatenate(x.(*List), acc.(*List))
 	}).(*List)
 }
 
+// Synonym for Flatten
 var Concat = Flatten
 
+// Takes a list of booleans and returns true only if all elements are true
+//
+// Example:
+//
+// l1 := L(true, true, true, true)
+// And(l1)
+// -> true
+//
+// l2 := L(true, true, false, true)
+// And(l2)
+// -> false
 func And(l *List) bool {
 	return Foldr1(l, func(x Elem, acc interface{}) interface{} {
 		return x.(bool) && acc.(bool)
 	}).(bool)
 }
 
+// Takes a list of booleans and returns true if there are true values in it.
+//
+// Example:
+//
+// l1 := L(false, false, false, true)
+// -> true
+//
+// l2 := L(false, false, false, false)
+// -> false
 func Or(l *List) bool {
 	return Foldr1(l, func(x Elem, acc interface{}) interface{} {
 		return x.(bool) || acc.(bool)
 	}).(bool)
 }
 
+// Returns true if all elements satisfy the predicate. Returns false otherwise.
+//
+// Example:
+//
+// l := L(1, 1, 3, 2, 5)
+// All(l, func(x Elem) bool {
+// 	return x.(int) < 7
+// })
+// -> true
+//
+// All(l, func(x Elem) bool {
+// 	return x.(int) < 5
+// })
+// -> false
 func All(l *List, f func(Elem) bool) bool {
 	return Foldr(true, l, func(x Elem, acc interface{}) interface{} {
 		return f(x) && acc.(bool)
 	}).(bool)
 }
 
+// Returns true if any element satisfies the predicate. Returns false 
+// otherwise.
+//
+// Example:
+//
+// l := L(1, 1, 3, 2, 5)
+// Any(l, func(x Elem) bool {
+// 	return x.(int) < 3
+// })
+// -> true
+//
+// Any(l, func(x Elem) bool {
+// 	return x.(int) < 1
+// })
+// -> false
 func Any(l *List, f func(Elem) bool) bool {
 	return Foldr(false, l, func(x Elem, acc interface{}) interface{} {
 		return f(x) || acc.(bool)
 	}).(bool)
 }
 
+// Groups consecutive identical elements into sublists.
+//
+// Example:
+//
+// l := L(1, 1, 1, 3, 3, 2, 3, 3, 6, 6, 6)
+// Group(l)
+// -> [[1,1,1], [3,3], [2], [3,3], [6,6,6]]
 func Group(l *List) *List {
 	vec := [2]*List{New(), New()} // {final list, sublist}
 	result := Foldr(vec, l, func(x Elem, acc interface{}) interface{} {
@@ -269,6 +372,17 @@ func Group(l *List) *List {
 	return Cons(r[1], r[0])
 }
 
+// Returns two lists. The first one contains all the elements of the original 
+// list that satisfy the predicate. The second one contains the remaining one 
+// (the ones that do not satisfy the predicate).
+//
+// Example:
+//
+// l := L(1, 1, 1, 3, 3, 2, 3, 3, 6, 6, 6)
+// Partition(l, func(x Elem) bool {
+// 	x.(int)%2 == 0
+// })
+// -> [2, 6, 6, 6] [1, 1, 1, 3, 3, 3, 3]
 func Partition(l *List, f func(Elem) bool) (satisfy, doNot *List) {
 	vec := [2]*List{New(), New()} // {satisfy, doNot}
 	result := Foldr(vec, l, func(x Elem, acc interface{}) interface{} {
@@ -285,6 +399,14 @@ func Partition(l *List, f func(Elem) bool) (satisfy, doNot *List) {
 	return r[0], r[1]
 }
 
+// Unique returns a list with the elements of the original one but without any 
+// repetition.
+//
+// Example:
+//
+// l := L(1, 1, 1, 3, 3, 2, 3, 3, 6, 6, 6)
+// Unique(l)
+// -> [1, 3, 2, 6]
 func Unique(l *List) *List {
 	table := make(map[Elem]bool)
 	return unique(l, table)
@@ -304,8 +426,16 @@ func unique(l *List, table map[Elem]bool) *List {
 	return Cons(head, unique(Tail(l), table))
 }
 
+// Synonym for Unique
 var Nub = Unique
 
+// Deletes the first occurrence of an element from a list.
+//
+// Example:
+//
+// l := L(1, 1, 1, 3, 3, 2, 3, 3, 6, 6, 6)
+// Delete(3, l)
+// -> [1, 1, 1, 3, 2, 3, 3, 6, 6, 6]
 func Delete(x Elem, l *List) *List {
 	without, with := Span(l, func(y Elem) bool {
 		return x != y

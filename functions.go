@@ -280,6 +280,21 @@ func Intersect(l1, l2 *List) *List {
 	}).(*List)
 }
 
+func Equal(l1, l2 *List) bool {
+	lenL1 := Len(l1)
+	lenL2 := Len(l2)
+	if lenL1 != lenL2 {
+		return false
+	}
+
+	for i := 0; i < lenL1; i++ {
+		if Get(l1, i) != Get(l2, i) {
+			return false
+		}
+	}
+	return true
+}
+
 func Each(l *List, f func(Elem)) {
 	Foldl(New(), l, func(acc interface{}, x Elem) interface{} {
 		f(x)

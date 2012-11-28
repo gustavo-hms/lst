@@ -501,6 +501,7 @@ func Intersect(l1, l2 *List) *List {
 	}).(*List)
 }
 
+// Returns true if the two lists have equal elements.
 func Equal(l1, l2 *List) bool {
 	lenL1 := Len(l1)
 	lenL2 := Len(l2)
@@ -516,6 +517,15 @@ func Equal(l1, l2 *List) bool {
 	return true
 }
 
+// Applies the function f to each element in the list, from left to right.
+//
+// Example:
+//
+// l := L(1,2,3)
+// Each(l, func(x Elem) {
+// 	fmt.Println(x, " ")
+// })
+// -> 1 2 3
 func Each(l *List, f func(Elem)) {
 	Foldl(New(), l, func(acc interface{}, x Elem) interface{} {
 		f(x)

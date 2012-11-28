@@ -542,3 +542,31 @@ func TestDifference(t *testing.T) {
 		t.Error("Diff list with inconsistent data")
 	}
 }
+
+func TestUnion(t *testing.T) {
+	l1 := NewFromSlice(elements[:N/2])
+	l2 := NewFromSlice(elements[N/2:])
+
+	union := Union(l1, l2)
+	diff := Difference(l2, l1)
+	compare := Concatenate(l1, diff)
+
+	if !Equal(union, compare) {
+		t.Error("Union list has errors")
+	}
+}
+
+func TestIntersect(t *testing.T) {
+	l1 := NewFromSlice(elements[:N/2])
+	l2 := NewFromSlice(elements[N/2:])
+
+	inter := Intersect(l1, l2)
+
+	inBoth := Filter(l1, func(x Elem) bool {
+		return Element(x, l2)
+	})
+
+	if !Equal(inter, inBoth) {
+		t.Error("Wrong intersection")
+	}
+}

@@ -546,10 +546,11 @@ func TestDifference(t *testing.T) {
 func TestUnion(t *testing.T) {
 	l1 := NewFromSlice(elements[:N/2])
 	l2 := NewFromSlice(elements[N/2:])
+	set(l2, 1, Get(l2, 3))
 
 	union := Union(l1, l2)
 	diff := Difference(l2, l1)
-	compare := Concatenate(l1, diff)
+	compare := Concatenate(l1, Unique(diff))
 
 	if !Equal(union, compare) {
 		t.Error("Union list has errors")
@@ -558,7 +559,12 @@ func TestUnion(t *testing.T) {
 
 func TestIntersect(t *testing.T) {
 	l1 := NewFromSlice(elements[:N/2])
+	set(l1, 1, Get(l1, 5))
+	set(l1, 2, Get(l1, 5))
+	set(l1, 3, Get(l1, 5))
+	set(l1, 4, Get(l1, 5))
 	l2 := NewFromSlice(elements[N/2:])
+	set(l2, 4, Get(l1, 5))
 
 	inter := Intersect(l1, l2)
 

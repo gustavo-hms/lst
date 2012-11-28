@@ -443,6 +443,14 @@ func Delete(x Elem, l *List) *List {
 	return Concatenate(without, Tail(with))
 }
 
+// Removes, from the first list, the elements found in the second one.
+//
+// Example:
+//
+// l1 := L(1, 2, 2, 3, 4, 4, 5, 6)
+// l2 := L(2, 5, 7, 9, 7, 10)
+// Difference(l1, l2)
+// -> [1, 3, 4, 4, 6]
 func Difference(base, subtract *List) *List {
 	table := make(map[Elem]bool)
 	next := MakeIterator(subtract)
@@ -457,17 +465,35 @@ func Difference(base, subtract *List) *List {
 	}).(*List)
 }
 
+// Makes the union of the two lists. Duplicated elements of the second list are 
+// removed, as well as elements also found in the first list.  However, 
+// duplicated elements of the first list aren't removed.
+//
+// Example:
+//
+// l1 := L(1, 2, 2, 3, 4, 4, 5, 6)
+// l2 := L(2, 5, 7, 9, 7, 10)
+// Union(l1, l2)
+// -> [1, 2, 2, 3, 4, 4, 5, 6, 7, 9, 7, 10]
 func Union(l1, l2 *List) *List {
-	return Concatenate(l1, Difference(l2, l1))
+	return Concatenate(l1, Difference(Unique(l2), l1))
 }
 
+// Makes the intersection of the two lists. If the first list contains 
+// duplicates, so will the result.
+//
+// Example:
+// l1 := L(1, 2, 2, 3, 4, 4, 5, 6)
+// l2 := L(2, 5, 7, 9, 7, 10)
+// Intersect(l1, l2)
+// -> [2, 2, 5]
 func Intersect(l1, l2 *List) *List {
 	table := make(map[Elem]bool)
-	next := MakeIterator(l1)
+	next := MakeIterator(l2)
 	for e := next(); e != nil; e = next() {
 		table[e] = true
 	}
-	return Foldr(New(), l2, func(x Elem, acc interface{}) interface{} {
+	return Foldr(New(), l1, func(x Elem, acc interface{}) interface{} {
 		if _, ok := table[x]; ok {
 			return Cons(x, acc.(*List))
 		}

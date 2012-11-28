@@ -279,3 +279,10 @@ func Intersect(l1, l2 *List) *List {
 		return acc
 	}).(*List)
 }
+
+func Each(l *List, f func(Elem)) {
+	Foldl(New(), l, func(acc interface{}, x Elem) interface{} {
+		f(x)
+		return x
+	})
+}

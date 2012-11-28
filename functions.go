@@ -172,15 +172,15 @@ func Or(l *List) bool {
 	}).(bool)
 }
 
-func Any(l *List, f func(Elem) bool) bool {
-	return Foldr(false, l, func(x Elem, acc interface{}) interface{} {
-		return f(x) || acc.(bool)
-	}).(bool)
-}
-
 func All(l *List, f func(Elem) bool) bool {
 	return Foldr(true, l, func(x Elem, acc interface{}) interface{} {
 		return f(x) && acc.(bool)
+	}).(bool)
+}
+
+func Any(l *List, f func(Elem) bool) bool {
+	return Foldr(false, l, func(x Elem, acc interface{}) interface{} {
+		return f(x) || acc.(bool)
 	}).(bool)
 }
 

@@ -447,3 +447,68 @@ func TestPartition(t *testing.T) {
 		t.Error("Not all elements in the second list respect the predicate")
 	}
 }
+
+func TestEqual(t *testing.T) {
+	l1 := NewFromSlice(elements[:])
+	l2 := NewFromSlice(elements[:])
+
+	if !Equal(l1, l2) {
+		t.Error("Saying identical lists are not equal")
+	}
+
+	set(l2, N-2, Get(l2, N-2).(int)-1)
+
+	if Equal(l1, l2) {
+		t.Error("Saying different lists are equal")
+	}
+}
+
+func TestEach(t *testing.T) {
+	l := NewFromSlice(elements[:])
+	plus1 := Map(l, func(x Elem) Elem {
+		return x.(int) + 1
+	})
+
+	eachPlus1 := New()
+	Each(l, func(x Elem) {
+		eachPlus1 = Concatenate(eachPlus1, L(x.(int)+1))
+	})
+
+	if !Equal(plus1, eachPlus1) {
+		t.Error("Each isn't applying the closure rightly")
+	}
+}
+
+func TestUnique(t *testing.T) {
+	found := make(map[Elem]bool)
+	l := NewFromSlice(elements[:])
+	Each(l, func(x Elem) {
+		found[x] = true
+	})
+
+	numberOfUnique := len(found)
+
+	uniq := Unique(l)
+
+	if Len(uniq) != numberOfUnique {
+		if Len(uniq) > numberOfUnique {
+			t.Error("Unique list has more elements than it should")
+		} else {
+			t.Error("Unique is dropping elements")
+		}
+	}
+
+	found = make(map[Elem]bool)
+	repeated := Any(uniq, func(x Elem) bool {
+		_, rep := found[x]
+		if rep {
+			return true
+		}
+		found[x] = true
+		return false
+	})
+
+	if repeated {
+		t.Error("Repeated elements found")
+	}
+}

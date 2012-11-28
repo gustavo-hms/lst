@@ -1,31 +1,59 @@
 package lst
 
+// Gives the reverse of some list.
 func Reverse(l *List) *List {
 	return Foldl(New(), l, func(xs interface{}, x Elem) interface{} {
 		return Cons(x, xs.(*List))
 	}).(*List)
 }
 
+// Tells if a list is empty
 func Empty(l *List) bool {
 	return Len(l) <= 0
 }
 
-var Null = Empty // Sinônimos
+// Synonym for Empty
+var Null = Empty
 
+// Same as Foldr, but uses the last element of the list as the initial value
 func Foldr1(l *List, f func(x Elem, acc interface{}) interface{}) interface{} {
 	return Foldr(Last(l), Init(l), f)
 }
 
+// Same as Foldl, but uses the first element of the list as the initial value
 func Foldl1(l *List, f func(acc interface{}, x Elem) interface{}) interface{} {
 	return Foldl(Head(l), Tail(l), f)
 }
 
+// Map creates a new list with the same size as the original one, whose 
+// elements are obtained applying the function f to each element of the 
+// original list.
+//
+// Example:
+//
+// l := NewWithElements(1, 2, 3, 4)
+// plus17 := Map(l, func(x Elem) Elem {
+// 	return x.(int) + 17
+// })
+//
+// -> plus17 = [18, 19, 20, 21]
 func Map(l *List, f func(Elem) Elem) *List {
 	return Foldr(New(), l, func(x Elem, acc interface{}) interface{} {
 		return Cons(f(x), acc.(*List))
 	}).(*List)
 }
 
+// Filter creates a new list using only the elements in the original one that 
+// satisfy the given predicate.
+//
+// Example:
+//
+// l := NewWithElements(1, 2, 3, 4)
+// even := Filter(l, func(x Elem) bool {
+// 	return x.(int)%2 == 0
+// })
+//
+// -> even = [2, 4]
 func Filter(l *List, f func(Elem) bool) *List {
 	return Foldr(New(), l, func(x Elem, acc interface{}) interface{} {
 		if f(x) {
@@ -35,6 +63,7 @@ func Filter(l *List, f func(Elem) bool) *List {
 	}).(*List)
 }
 
+// Sums all elements of a list of integers
 func IntSum(l *List) int {
 	result := Foldr(0, l, func(x Elem, acc interface{}) interface{} {
 		return acc.(int) + x.(int)
@@ -42,8 +71,10 @@ func IntSum(l *List) int {
 	return result.(int)
 }
 
+// Synonym for IntSum
 var Sum = IntSum
 
+// Sums all elements of a list of float64
 func FloatSum(l *List) float64 {
 	result := Foldr(0, l, func(x Elem, acc interface{}) interface{} {
 		return acc.(float64) + x.(float64)
@@ -51,6 +82,7 @@ func FloatSum(l *List) float64 {
 	return result.(float64)
 }
 
+// Gives the accumulated product of all elements of a list of integers
 func IntProd(l *List) int {
 	result := Foldr(1, l, func(x Elem, acc interface{}) interface{} {
 		return acc.(int) * x.(int)
@@ -58,8 +90,10 @@ func IntProd(l *List) int {
 	return result.(int)
 }
 
+// Synonym for IntProd
 var Prod = IntProd
 
+// Gives the accumulated product of all elements of a list of integers
 func FloatProd(l *List) float64 {
 	result := Foldr(1, l, func(x Elem, acc interface{}) interface{} {
 		return acc.(float64) * x.(float64)
@@ -67,6 +101,7 @@ func FloatProd(l *List) float64 {
 	return result.(float64)
 }
 
+// Tells if some element belongs to the given list
 func Element(x Elem, l *List) bool {
 	switch {
 	case Empty(l):
@@ -77,10 +112,15 @@ func Element(x Elem, l *List) bool {
 	return Element(x, Tail(l))
 }
 
+// Tells if some element does not belongs to the given list
 func NotElement(x Elem, l *List) bool {
 	return !Element(x, l)
 }
 
+// ElemIndex returns 2 items. The first one is the index of the first 
+// occurrence of the element x in the list l if such an element belongs to the 
+// list. The second item it returns is true if the element could be found in 
+// the list, or false otherwise.
 func ElemIndex(x Elem, l *List) (int, bool) {
 	switch {
 	case Empty(l):
@@ -93,6 +133,8 @@ func ElemIndex(x Elem, l *List) (int, bool) {
 	return i + 1, ok
 }
 
+// ElemIndices returns a list with the indices of all occurrences of the 
+// element x in the list xs
 func ElemIndices(x Elem, xs *List) *List {
 	count := -1
 	return indices(x, xs, count)
@@ -110,6 +152,17 @@ func indices(y Elem, ys *List, count int) *List {
 	return indices(y, Tail(ys), count)
 }
 
+// Zip merges two lists together, creating a new list where each element is 
+// a list containing two elements: one from each of the original lists. The 
+// length of the new list is equal to the length of the smallest one.
+//
+// Example: 
+//
+// l1 := L(1, 2, 3, 4)
+// l2 := L(5, 6, 7)
+// zipped := Zip(l1, l2)
+//
+// -> zipped = [[1,5], [2,6], [3, 7]]
 func Zip(l1, l2 *List) *List {
 	if Empty(l1) || Empty(l2) {
 		return New()
@@ -117,6 +170,18 @@ func Zip(l1, l2 *List) *List {
 	return Cons(L(Head(l1), Head(l2)), Zip(Tail(l1), Tail(l2)))
 }
 
+// ZipWith is simillar to Zip, but instead of automatically combining the 
+// elements of the two original lists creating sublists, it uses the function 
+// provided as an argument to mix such elements.
+//
+// Example:
+// l1 := L(1, 2, 3, 4)
+// l2 := L(5, 6, 7)
+// zipped := ZipWith(l1, l2, func(x, y Elem) Elem {
+// 	return x.(int) * y.(int)
+// })
+//
+// -> zipped = [5, 12, 21]
 func ZipWith(l1, l2 *List, f func(x, y Elem) Elem) *List {
 	if Empty(l1) || Empty(l2) {
 		return New()

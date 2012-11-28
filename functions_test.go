@@ -354,5 +354,54 @@ func TestOr(t *testing.T) {
 	if !Or(l) {
 		t.Error("Returning false for a list with a true element")
 	}
+}
 
+func TestAll(t *testing.T) {
+	l := New()
+	for i := 0; i < N; i++ {
+		l = Cons(1, l)
+	}
+
+	allOne := All(l, func(x Elem) bool {
+		return x == 1
+	})
+
+	if !allOne {
+		t.Error("Returning false for a true statement")
+	}
+
+	set(l, N-2, 0)
+
+	allOne = All(l, func(x Elem) bool {
+		return x == 1
+	})
+
+	if allOne {
+		t.Error("Returning true for a false statement")
+	}
+}
+
+func TestAny(t *testing.T) {
+	l := New()
+	for i := 0; i < N; i++ {
+		l = Cons(1, l)
+	}
+
+	anyZero := Any(l, func(x Elem) bool {
+		return x == 0
+	})
+
+	if anyZero {
+		t.Error("Returning true for a false statement")
+	}
+
+	set(l, N-2, 0)
+
+	anyZero = Any(l, func(x Elem) bool {
+		return x == 0
+	})
+
+	if !anyZero {
+		t.Error("Returning false for a true statement")
+	}
 }

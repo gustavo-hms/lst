@@ -321,3 +321,38 @@ func TestFlatten(t *testing.T) {
 		}
 	}
 }
+
+func TestAnd(t *testing.T) {
+	l := New()
+	for i := 0; i < N; i++ {
+		l = Cons(true, l)
+	}
+
+	if !And(l) {
+		t.Error("Returning false for an all true list")
+	}
+
+	set(l, N-2, false)
+
+	if And(l) {
+		t.Error("Returning true for a list with a false element")
+	}
+}
+
+func TestOr(t *testing.T) {
+	l := New()
+	for i := 0; i < N; i++ {
+		l = Cons(false, l)
+	}
+
+	if Or(l) {
+		t.Error("Returning true for an all false list")
+	}
+
+	set(l, N-2, true)
+
+	if !Or(l) {
+		t.Error("Returning false for a list with a true element")
+	}
+
+}

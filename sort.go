@@ -32,7 +32,7 @@ func (s *sortable) Less(i, j int) bool {
  * Sorts a list based on a function returning true if the “x” element is lesser 
  * then “y”
  */
-func SortWith(l *List, less func(x, y Elem) bool) *List {
+func SortBy(l *List, less func(x, y Elem) bool) *List {
 	s := new(sortable)
 	s.elements = make([]Elem, Len(l))
 	copy(s.elements, l.elements)

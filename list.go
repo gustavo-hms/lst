@@ -27,124 +27,122 @@ import (
 type Elem interface{}
 
 type List struct {
-	elements []Elem
-	// See Cons function for a better understanding of the following 2 fields
-	firstEmpty *int
-	firstUsed  int
+	elements    [][]Elem
+	accumLength []int
+	// All lists have underlying vectors storing its elements, which can be 
+	// shared across several lists. To avoid that a list overwrites elements of 
+	// other lists with shared data, we must be sure we are not writting at 
+	// a position already used in this shared vector. Since slices do not see 
+	// anything in the underlying vector except for its own data, we must keep 
+	// two informations regarding the original vector: first, the index of its 
+	// first empty position (stored in the firsEmpty variable); second, the 
+	// index at which the slice begins (offset variable).  So, for instance, 
+	// if we have a vector v = [1, 2, 3, 4, 0, 0, 0, 0] and a slice s := 
+	// v[3:5], the index at which the slice begins is 3, and the index of the 
+	// first empty position is 4. To see how this information is used, see the 
+	// Cons implementation.
+	firstEmpty []int
+	offsets    []int
 }
 
 func New() *List {
 	l := new(List)
-	l.elements = make([]Elem, 0)
-	l.firstEmpty = new(int)
-
+	l.elements = make([][]Elem, 1)
+	l.elements[0] = make([]Elem, 0)
+	l.accumLength = make([]int, 1)
+	l.firstEmpty = make([]int, 1)
+	l.offsets = make([]int, 1)
 	return l
 }
 
 func NewFromList(original *List) (dest *List) {
 	dest = new(List)
-	dest.elements = original.elements[:]
+	dest.elements = original.elements
+	dest.accumLength = original.accumLength
 	dest.firstEmpty = original.firstEmpty
-	dest.firstUsed = original.firstUsed
+	dest.offsets = original.offsets
 	return
 }
 
 func newFromReversedSlice(slice []Elem) (l *List) {
-	l = new(List)
-	l.elements = make([]Elem, len(slice))
-	copy(l.elements, slice)
-	length := len(slice)
-	l.firstEmpty = &length
+	l = New()
+	l.elements[0] = make([]Elem, len(slice))
+	copy(l.elements[0], slice)
+	l.firstEmpty[0] = len(slice)
 	return
 }
 
+// Constructs a new list from the given slice
+//
+// Example:
+//
+// l := NewFromSlice([]Elem{1, 2, 3, 4})
+// -> [1, 2, 3, 4]
 func NewFromSlice(slice []Elem) (l *List) {
-	l = new(List)
-	l.elements = make([]Elem, len(slice))
-
+	reversed := make([]Elem, len(slice))
 	for k, v := range slice {
-		set(l, k, v)
+		reversed[len(slice)-k-1] = v
 	}
 
-	i := len(slice)
-	l.firstEmpty = &i
-	return
+	return newFromReversedSlice(reversed)
 }
 
+// Constructs a new list with the given elements.
+//
+// Example:
+//
+// l := NewWithElements(1, 2, 3, 4)
+// -> [1, 2, 3, 4]
 func NewWithElements(elems ...Elem) (l *List) {
 	return NewFromSlice(elems)
 }
 
 var L = NewWithElements // Just for convenience
 
+// The length of the list
 func Len(l *List) int {
-	return len(l.elements)
+	numberOfGroups := len(l.accumLength)
+	return l.accumLength[numberOfGroups-1] + len(l.elements[numberOfGroups-1])
 }
 
-func (l *List) String() string {
-	/* 
-	 * Os elementos da lista são armazenados no slice elements na ordem inversa 
-	 * à que serão exibidos
-	 */
-	last := Len(l) - 1
-	elems := make([]string, last+1)
-
-	for k, v := range l.elements {
-		elems[last-k] = fmt.Sprintf("%v", v)
-	}
-
-	return "[" + strings.Join(elems, ", ") + "]"
-}
-
+// Gets the element at index i
 func Get(l *List, i int) Elem {
 	last := Len(l) - 1
-	return l.elements[last-i]
+	index := last - i
+	slice, offset := findSlice(l.accumLength, l.elements, index)
+
+	return slice[index-offset]
+}
+
+func findSlice(lengths []int, elements [][]Elem, i int) (group []Elem, offset int) {
+	numberOfGroups := len(lengths)
+	if numberOfGroups == 1 {
+		return elements[0], lengths[0]
+	}
+
+	middle := numberOfGroups/2 + 1
+	if i < lengths[middle] {
+		return findSlice(lengths[:middle], elements[:middle], i)
+	}
+	return findSlice(lengths[middle:], elements[middle:], i)
 }
 
 func set(l *List, i int, x Elem) {
 	last := Len(l) - 1
-	l.elements[last-i] = x
+	index := last - i
+	slice, offset := findSlice(l.accumLength, l.elements, index)
+
+	slice[index-offset] = x
 }
 
-// MakeIterator creates a function one can use to iterate over the elements of 
-// the list. A "nil" value signalises the end of the loop.
-//
-// Example:
-//
-// next := MakeIterator(list)
-// for element := next(); element != nil; element = next() {
-// 	do something
-// }
-func MakeIterator(l *List) func() Elem {
-	index := -1
-	return func() Elem {
-		index++
-		if index > Len(l)-1 {
-			return nil
-		}
-		return Get(l, index)
-	}
-}
+func (l *List) String() string {
+	elems := make([]string, Len(l))
 
-// MakeReverseIterator creates a function one can use to iterate over the 
-// elements of the list in the reverse order. A "nil" value signalises the end 
-// of the loop.
-//
-// Example:
-//
-// previous := MakeIterator(list)
-// for element := previous(); element != nil; element = previous() {
-// 	do something
-// }
-func MakeReverseIterator(l *List) func() Elem {
-	index := Len(l)
-	return func() Elem {
-		index--
-		if index < 0 {
-			return nil
-		}
-		return Get(l, index)
+	for i := 0; i < Len(l); i++ {
+		elems[i] = fmt.Sprintf("%v", Get(l, i))
 	}
+
+	return "[" + strings.Join(elems, ", ") + "]"
 }
 
 // Gets the head of the list (its most recently inserted element)
@@ -153,11 +151,17 @@ func Head(l *List) Elem {
 }
 
 // Gets all but the head of the list
-func Tail(l *List) (tailList *List) {
-	tailList = new(List)
-	tailList.elements = l.elements[:Len(l)-1]
-	tailList.firstEmpty = l.firstEmpty
-	tailList.firstUsed = l.firstUsed
+func Tail(l *List) (tail *List) {
+	tail = NewFromList(l)
+	numberOfGroups := len(tail.elements)
+	lenLastGroup := len(tail.elements[numberOfGroups-1])
+	if lenLastGroup > 1 {
+		tail.elements[numberOfGroups-1] = tail.elements[numberOfGroups-1][:lenLastGroup-1]
+		return
+	}
+
+	tail.elements = tail.elements[:numberOfGroups-1]
+	tail.offsets = tail.offsets[:numberOfGroups-1]
 	return
 }
 
@@ -167,11 +171,24 @@ func Last(l *List) Elem {
 }
 
 // Gets all but the last element of the list
-func Init(l *List) (initList *List) {
-	initList = new(List)
-	initList.elements = l.elements[1:]
-	initList.firstEmpty = l.firstEmpty
-	initList.firstUsed = l.firstUsed + 1
+func Init(l *List) (init *List) {
+	init = NewFromList(l)
+	lenFirstGroup := len(init.elements[0])
+	if lenFirstGroup > 1 {
+		init.elements[0] = init.elements[0][1:]
+		init.offsets[0] += 1
+		for k, v := range init.accumLength[1:] {
+			init.accumLength[k] = v - 1
+		}
+		return
+	}
+
+	init.elements = init.elements[1:]
+	init.offsets = init.offsets[1:]
+	for k, v := range init.accumLength[1:] {
+		init.accumLength[k] = v - init.accumLength[1]
+	}
+	init.accumLength = init.accumLength[1:]
 	return
 }
 
@@ -185,85 +202,43 @@ func Init(l *List) (initList *List) {
 // second := Cons(1, first)
 //
 // third := Cons(2, second)
+//
+// Cons(3, third)
+// -> [3, 2, 1]
 func Cons(x Elem, l *List) (newl *List) {
-	/*
-	 * O vetor que efetivamente armazena os elementos da lista pode ser 
-	 * compartilhado por diversas listas. Assim, é preciso ter cuidado ao 
-	 * inserir um novo elemento, para não sobrescrever um elemento que tenha 
-	 * sido inserido por outra lista que compartilhe esse mesmo vetor. Para 
-	 * isso é que servem os atributos firstEmpty e firstUsed
-	 */
-	if *l.firstEmpty > Len(l)+l.firstUsed {
-		// Neste caso, a posição desejada do vetor já está sendo ocupada. É
-		// necessário fazer uma cópia portanto
-		newl = newFromReversedSlice(l.elements)
-	} else {
-		newl = NewFromList(l)
+	lastGroup := len(l.elements) - 1
+	newl = NewFromList(l)
+	if newl.firstEmpty[lastGroup] <= len(newl.elements[lastGroup])+newl.offsets[lastGroup] {
+		// A new value can be appended to l.elements[lastGroup] without 
+		// overwritting any shared data
+		newl.elements[lastGroup] = append(newl.elements[lastGroup], x)
+		newl.firstEmpty[lastGroup]++
+		return
 	}
 
-	if Len(l) == cap(l.elements) {
-		// Neste caso, a função append que será usada a seguir vai alocar um 
-		// novo vetor, o que obriga a reconfigurar as variáveis firsEmpty e
-		// firstUsed
-		*newl.firstEmpty = Len(l) + 1
-		newl.firstUsed = 0
-	} else {
-		*newl.firstEmpty++
-	}
-
-	newl.elements = append(newl.elements, x)
-	return
-}
-
-// Foldr makes a fold in the list from right to left. For each element, it 
-// applies the function f given in its third argument as f(e, acc), where e is 
-// the current element in the list, and acc is the value returned by f in the 
-// previous iteration. In its first iteration, it uses the value in "init" as 
-// the value for "acc".
-//
-// Example:
-//
-// l := NewWithElements(1, 2, 3, 4)
-//
-// sum := Foldr(0, l, func(x Elem, acc interface{}) interface{} {
-// 	return x.(int) + acc.(int)
-// })
-func Foldr(init interface{}, l *List, f func(Elem, interface{}) interface{}) (accum interface{}) {
-	accum = init
-	for _, v := range l.elements {
-		accum = f(v, accum)
-	}
-	return
-}
-
-// Similar to Foldr, Foldl makes a fold in the list left to right.  For each 
-// element, it applies the function f given in its third argument as f(acc, e), 
-// where e is the current element in the list, and acc is the value returned by 
-// f in the previous iteration. In its first iteration, it uses the value in 
-// "init" as the value for "acc".
-//
-// Example:
-//
-// l := NewWithElements(1, 2, 3, 4)
-//
-// sum := Foldr(0, l, func(acc interface{}, x Elem) interface{} {
-// 	return x.(int) + acc.(int)
-// })
-//
-// -> sum = 11
-func Foldl(init interface{}, l *List, f func(interface{}, Elem) interface{}) (accum interface{}) {
-	accum = init
-	for i := 0; i < Len(l); i++ {
-		accum = f(accum, Get(l, i))
-	}
+	// In this case, we can't append to l.elements[lastGroup], because it would 
+	// overwrite a shared value. To circumvent this problem, we simply start 
+	// a new elements' group
+	newl.elements = append(newl.elements, []Elem{x})
+	newl.firstEmpty = append(newl.firstEmpty, 1)
+	newl.offsets = append(newl.offsets, 0)
+	lenLastGroup := len(newl.elements[lastGroup])
+	newl.accumLength = append(newl.accumLength, newl.accumLength[lastGroup]+lenLastGroup)
 	return
 }
 
 func concatenate(l1, l2 *List) (con *List) {
-	cons := func(x Elem, accum interface{}) interface{} {
-		return Cons(x, accum.(*List))
+	con = NewFromList(l2)
+	for k, group := range l1.elements {
+		con.elements = append(con.elements, group)
+		con.offsets = append(con.offsets, l1.offsets[k])
+		con.firstEmpty = append(con.firstEmpty, l1.firstEmpty[k])
+
+		lastInserted := len(con.accumLength) - 1
+		con.accumLength = append(con.accumLength,
+			con.accumLength[lastInserted]+len(con.elements[lastInserted]))
 	}
-	return Foldr(l2, l1, cons).(*List)
+	return
 }
 
 // Concatenates all the lists given as arguments.
@@ -273,9 +248,8 @@ func concatenate(l1, l2 *List) (con *List) {
 // l1 := NewWithElements(1, 2)
 // l2 := NewWithElements(3, 4)
 // l3 := NewWithElements(5, 6)
-// c := Concatenate(l1, l2, l3)
-//
-// -> c = [1, 2, 3, 4, 5, 6]
+// Concatenate(l1, l2, l3)
+// -> [1, 2, 3, 4, 5, 6]
 func Concatenate(lists ...*List) (con *List) {
 	last := len(lists) - 1
 	con = lists[last]

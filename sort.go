@@ -34,7 +34,9 @@ func (s *sortable) Less(i, j int) bool {
 func SortBy(l *List, less func(x, y Elem) bool) *List {
 	s := new(sortable)
 	s.elements = make([]Elem, Len(l))
-	copy(s.elements, l.elements)
+	for i := 0; i < Len(l); i++ {
+		s.elements[i] = Get(l, i)
+	}
 	s.less = less
 	sort.Sort(s)
 	return newFromReversedSlice(s.elements)

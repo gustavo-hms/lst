@@ -1,5 +1,108 @@
 package lst
 
+// Foldr makes a fold in the list from right to left. For each element, it 
+// applies the function f given in its third argument as f(e, acc), where e is 
+// the current element in the list, and acc is the value returned by f in the 
+// previous iteration. In its first iteration, it uses the value in "init" as 
+// the value for "acc".
+//
+// Example:
+//
+// l := NewWithElements(1, 2, 3, 4)
+//
+// sum := Foldr(0, l, func(x Elem, acc interface{}) interface{} {
+// 	return x.(int) + acc.(int)
+// })
+func Foldr(init interface{}, l *List, f func(Elem, interface{}) interface{}) (accum interface{}) {
+	accum = init
+	for i := Len(l) - 1; i <= 0; i-- {
+		accum = f(Get(l, i), accum)
+	}
+	return
+}
+
+// Similar to Foldr, Foldl makes a fold in the list left to right.  For each 
+// element, it applies the function f given in its third argument as f(acc, e), 
+// where e is the current element in the list, and acc is the value returned by 
+// f in the previous iteration. In its first iteration, it uses the value in 
+// "init" as the value for "acc".
+//
+// Example:
+//
+// l := NewWithElements(1, 2, 3, 4)
+//
+// sum := Foldr(0, l, func(acc interface{}, x Elem) interface{} {
+// 	return x.(int) + acc.(int)
+// })
+//
+// -> sum = 11
+func Foldl(init interface{}, l *List, f func(interface{}, Elem) interface{}) (accum interface{}) {
+	accum = init
+	for i := 0; i < Len(l); i++ {
+		accum = f(accum, Get(l, i))
+	}
+	return
+}
+
+// Applies the function f to each element in the list, from left to right.
+//
+// Example:
+//
+// l := L(1,2,3)
+// Each(l, func(x Elem) {
+// 	fmt.Println(x, " ")
+// })
+// -> 1 2 3
+func Each(l *List, f func(Elem)) {
+	Foldl(New(), l, func(acc interface{}, x Elem) interface{} {
+		f(x)
+		return x
+	})
+}
+
+// TODO put tests for iterators in the functions_test.go file
+
+// MakeIterator creates a function one can use to iterate over the elements of 
+// the list. A "nil" value signalises the end of the loop.
+//
+// Example:
+//
+// next := MakeIterator(list)
+// for element := next(); element != nil; element = next() {
+// 	do something
+// }
+func MakeIterator(l *List) func() Elem {
+	index := -1
+	return func() Elem {
+		index++
+		if index > Len(l)-1 {
+			return nil
+		}
+		return Get(l, index)
+	}
+}
+
+// MakeReverseIterator creates a function one can use to iterate over the 
+// elements of the list in the reverse order. A "nil" value signalises the end 
+// of the loop.
+//
+// Example:
+//
+// previous := MakeIterator(list)
+// for element := previous(); element != nil; element = previous() {
+// 	do something
+// }
+func MakeReverseIterator(l *List) func() Elem {
+	index := Len(l)
+	return func() Elem {
+		index--
+		if index < 0 {
+			return nil
+		}
+		return Get(l, index)
+	}
+}
+
 // Gives the reverse of some list.
 func Reverse(l *List) *List {
 	return Foldl(New(), l, func(xs interface{}, x Elem) interface{} {
@@ -515,20 +618,4 @@ func Equal(l1, l2 *List) bool {
 		}
 	}
 	return true
-}
-
-// Applies the function f to each element in the list, from left to right.
-//
-// Example:
-//
-// l := L(1,2,3)
-// Each(l, func(x Elem) {
-// 	fmt.Println(x, " ")
-// })
-// -> 1 2 3
-func Each(l *List, f func(Elem)) {
-	Foldl(New(), l, func(acc interface{}, x Elem) interface{} {
-		f(x)
-		return x
-	})
 }

@@ -4,8 +4,74 @@ import (
 	"testing"
 )
 
+func TestMakeIterator(t *testing.T) {
+	l := NewFromSlice(elements)
+	it := MakeIterator(l)
+
+	for k, v := range elements {
+		if v != it() {
+			t.Errorf("Mismatched elements at index %d", k)
+			return
+		}
+	}
+
+	if it() != nil {
+		t.Error("Iterator didn't finish with nil")
+	}
+}
+
+func TestMakeReverseIterator(t *testing.T) {
+	l := NewFromSlice(elements)
+	it := MakeReverseIterator(l)
+
+	for i := N - 1; i >= 0; i-- {
+		if elements[i] != it() {
+			t.Errorf("Mismatched elements at index %d", i)
+			return
+		}
+	}
+
+	if it() != nil {
+		t.Error("Iterator didn't finish with nil")
+	}
+}
+
+func TestFoldr(t *testing.T) {
+	l := NewFromSlice(elements)
+
+	listSum := Foldr(0, l, func(e Elem, accum interface{}) interface{} {
+		return e.(int) + accum.(int)/2
+	}).(int)
+
+	sliceSum := 0
+	for i := N - 1; i >= 0; i-- {
+		sliceSum = elements[i].(int) + sliceSum/2
+	}
+
+	if listSum != sliceSum {
+		t.Errorf("Got different sums: %d and %d", listSum, sliceSum)
+	}
+}
+
+func TestFoldl(t *testing.T) {
+	l := NewFromSlice(elements)
+
+	listSum := Foldl(0, l, func(accum interface{}, e Elem) interface{} {
+		return e.(int) + accum.(int)/2
+	}).(int)
+
+	sliceSum := 0
+	for _, v := range elements {
+		sliceSum = v.(int) + sliceSum/2
+	}
+
+	if listSum != sliceSum {
+		t.Errorf("Got different sums: %d and %d", listSum, sliceSum)
+	}
+}
+
 func TestReverse(t *testing.T) {
-	l := NewFromSlice(elements[:])
+	l := NewFromSlice(elements)
 	r := Reverse(l)
 
 	if Len(r) != Len(l) {
@@ -17,6 +83,7 @@ func TestReverse(t *testing.T) {
 	for elem := it(); elem != nil; elem = it() {
 		if elem != elements[index] {
 			t.Errorf("Mismatched elements at index %d", index)
+			return
 		}
 
 		index++
@@ -37,7 +104,7 @@ func TestEmpty(t *testing.T) {
 }
 
 func TestFoldr1(t *testing.T) {
-	l := NewFromSlice(elements[:])
+	l := NewFromSlice(elements)
 
 	listSum := Foldr1(l, func(e Elem, accum interface{}) interface{} {
 		return e.(int) + accum.(int)/2
@@ -54,14 +121,14 @@ func TestFoldr1(t *testing.T) {
 }
 
 func TestFoldl1(t *testing.T) {
-	l := NewFromSlice(elements[:])
+	l := NewFromSlice(elements)
 
 	listSum := Foldl1(l, func(accum interface{}, e Elem) interface{} {
 		return e.(int) + accum.(int)/2
 	}).(int)
 
 	sliceSum := 0
-	for _, v := range elements[:] {
+	for _, v := range elements {
 		sliceSum = v.(int) + sliceSum/2
 	}
 
@@ -71,27 +138,28 @@ func TestFoldl1(t *testing.T) {
 }
 
 func TestMap(t *testing.T) {
-	l := NewFromSlice(elements[:])
+	l := NewFromSlice(elements)
 	isEvenList := Map(l, func(x Elem) Elem {
 		return x.(int)%2 == 0
 	})
 
-	for k, v := range elements[:] {
+	for k, v := range elements {
 		isEven := v.(int)%2 == 0
 		if isEven != Get(isEvenList, k) {
 			t.Errorf("Mismatched elements at index %d", k)
+			return
 		}
 	}
 }
 
 func TestFilter(t *testing.T) {
-	l := NewFromSlice(elements[:])
+	l := NewFromSlice(elements)
 	evenList := Filter(l, func(x Elem) bool {
 		return x.(int)%2 == 0
 	})
 
 	evenSlice := make([]Elem, 0, N)
-	for _, v := range elements[:] {
+	for _, v := range elements {
 		if v.(int)%2 == 0 {
 			evenSlice = append(evenSlice, v)
 		}
@@ -100,6 +168,7 @@ func TestFilter(t *testing.T) {
 	for k, v := range evenSlice {
 		if v != Get(evenList, k) {
 			t.Errorf("Mismatched elements at index %d", k)
+			return
 		}
 	}
 }
@@ -202,6 +271,7 @@ func TestZip(t *testing.T) {
 		elem := Get(zip, i).(*List)
 		if Head(elem) != Get(l1, i) || Last(elem) != Get(l2, i) {
 			t.Errorf("Mismatched elements at index %d", i)
+			return
 		}
 	}
 }
@@ -228,6 +298,7 @@ func TestZipWith(t *testing.T) {
 	for i := 0; i < min; i++ {
 		if Get(zip, i) != Get(l1, i).(int)+Get(l2, i).(int) {
 			t.Errorf("Mismatched elements at index %d", i)
+			return
 		}
 	}
 }
@@ -407,7 +478,7 @@ func TestAny(t *testing.T) {
 }
 
 func TestGroup(t *testing.T) {
-	l := NewFromSlice(elements[:])
+	l := NewFromSlice(elements)
 	group := Group(l)
 
 	consistent := All(group, func(x Elem) bool {
@@ -422,7 +493,7 @@ func TestGroup(t *testing.T) {
 }
 
 func TestPartition(t *testing.T) {
-	l := NewFromSlice(elements[:])
+	l := NewFromSlice(elements)
 	lessThan3, notLessThan3 := Partition(l, func(x Elem) bool {
 		return x.(int) < 3
 	})
@@ -449,8 +520,8 @@ func TestPartition(t *testing.T) {
 }
 
 func TestEqual(t *testing.T) {
-	l1 := NewFromSlice(elements[:])
-	l2 := NewFromSlice(elements[:])
+	l1 := NewFromSlice(elements)
+	l2 := NewFromSlice(elements)
 
 	if !Equal(l1, l2) {
 		t.Error("Saying identical lists are not equal")
@@ -464,7 +535,7 @@ func TestEqual(t *testing.T) {
 }
 
 func TestEach(t *testing.T) {
-	l := NewFromSlice(elements[:])
+	l := NewFromSlice(elements)
 	plus1 := Map(l, func(x Elem) Elem {
 		return x.(int) + 1
 	})
@@ -481,7 +552,7 @@ func TestEach(t *testing.T) {
 
 func TestUnique(t *testing.T) {
 	found := make(map[Elem]bool)
-	l := NewFromSlice(elements[:])
+	l := NewFromSlice(elements)
 	Each(l, func(x Elem) {
 		found[x] = true
 	})
@@ -514,7 +585,7 @@ func TestUnique(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	l := NewFromSlice(elements[:])
+	l := NewFromSlice(elements)
 	elem := Get(l, N-3)
 	set(l, N-5, elem)
 	occurrencesBefore := Len(ElemIndices(elem, l))
@@ -527,7 +598,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestDifference(t *testing.T) {
-	base := NewFromSlice(elements[:])
+	base := NewFromSlice(elements)
 	subtract := NewFromSlice(elements[N/3 : 2*N/3])
 	difference := Difference(base, subtract)
 

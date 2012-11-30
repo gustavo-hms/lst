@@ -27,8 +27,8 @@ import (
 type Elem interface{}
 
 type List struct {
-	elements    [][]Elem
-	accumLength []int
+	elements       [][]Elem
+	accumulatedLen []int
 	// All lists have underlying vectors storing its elements, which can be 
 	// shared across several lists. To avoid that a list overwrites elements of 
 	// other lists with shared data, we must be sure we are not writting at 
@@ -41,26 +41,37 @@ type List struct {
 	// v[3:5], the index at which the slice begins is 3, and the index of the 
 	// first empty position is 4. To see how this information is used, see the 
 	// Cons implementation.
-	firstEmpty []int
 	offsets    []int
+	firstEmpty []*int
 }
 
 func New() *List {
 	l := new(List)
 	l.elements = make([][]Elem, 1)
 	l.elements[0] = make([]Elem, 0)
-	l.accumLength = make([]int, 1)
-	l.firstEmpty = make([]int, 1)
+	l.accumulatedLen = make([]int, 1)
+	l.firstEmpty = make([]*int, 1)
+	l.firstEmpty[0] = new(int)
 	l.offsets = make([]int, 1)
 	return l
 }
 
 func NewFromList(original *List) (dest *List) {
 	dest = new(List)
-	dest.elements = original.elements
-	dest.accumLength = original.accumLength
-	dest.firstEmpty = original.firstEmpty
-	dest.offsets = original.offsets
+	numberOfGroups := len(original.elements)
+
+	dest.elements = make([][]Elem, len(original.elements))
+	copy(dest.elements, original.elements)
+
+	dest.accumulatedLen = make([]int, numberOfGroups)
+	copy(dest.accumulatedLen, original.accumulatedLen)
+
+	dest.firstEmpty = make([]*int, numberOfGroups)
+	copy(dest.firstEmpty, original.firstEmpty)
+
+	dest.offsets = make([]int, numberOfGroups)
+	copy(dest.offsets, original.offsets)
+
 	return
 }
 
@@ -68,7 +79,8 @@ func newFromReversedSlice(slice []Elem) (l *List) {
 	l = New()
 	l.elements[0] = make([]Elem, len(slice))
 	copy(l.elements[0], slice)
-	l.firstEmpty[0] = len(slice)
+	lenSlice := len(slice)
+	l.firstEmpty[0] = &lenSlice
 	return
 }
 
@@ -101,15 +113,15 @@ var L = NewWithElements // Just for convenience
 
 // The length of the list
 func Len(l *List) int {
-	numberOfGroups := len(l.accumLength)
-	return l.accumLength[numberOfGroups-1] + len(l.elements[numberOfGroups-1])
+	numberOfGroups := len(l.accumulatedLen)
+	return l.accumulatedLen[numberOfGroups-1] + len(l.elements[numberOfGroups-1])
 }
 
 // Gets the element at index i
 func Get(l *List, i int) Elem {
 	last := Len(l) - 1
 	index := last - i
-	slice, offset := findSlice(l.accumLength, l.elements, index)
+	slice, offset := findSlice(l.accumulatedLen, l.elements, index)
 
 	return slice[index-offset]
 }
@@ -120,7 +132,7 @@ func findSlice(lengths []int, elements [][]Elem, i int) (group []Elem, offset in
 		return elements[0], lengths[0]
 	}
 
-	middle := numberOfGroups/2 + 1
+	middle := numberOfGroups / 2
 	if i < lengths[middle] {
 		return findSlice(lengths[:middle], elements[:middle], i)
 	}
@@ -130,7 +142,7 @@ func findSlice(lengths []int, elements [][]Elem, i int) (group []Elem, offset in
 func set(l *List, i int, x Elem) {
 	last := Len(l) - 1
 	index := last - i
-	slice, offset := findSlice(l.accumLength, l.elements, index)
+	slice, offset := findSlice(l.accumulatedLen, l.elements, index)
 
 	slice[index-offset] = x
 }
@@ -152,6 +164,11 @@ func Head(l *List) Elem {
 
 // Gets all but the head of the list
 func Tail(l *List) (tail *List) {
+	if Len(l) == 1 {
+		tail = New()
+		return
+	}
+
 	tail = NewFromList(l)
 	numberOfGroups := len(tail.elements)
 	lenLastGroup := len(tail.elements[numberOfGroups-1])
@@ -160,8 +177,22 @@ func Tail(l *List) (tail *List) {
 		return
 	}
 
-	tail.elements = tail.elements[:numberOfGroups-1]
-	tail.offsets = tail.offsets[:numberOfGroups-1]
+	lastGroupRemoved := tail.elements[:numberOfGroups-1]
+	tail.elements = make([][]Elem, numberOfGroups-1)
+	copy(tail.elements, lastGroupRemoved)
+
+	lastOffsetRemoved := tail.offsets[:numberOfGroups-1]
+	tail.offsets = make([]int, numberOfGroups-1)
+	copy(tail.offsets, lastOffsetRemoved)
+
+	lastAccumulatedLenRemoved := tail.accumulatedLen[:numberOfGroups-1]
+	tail.accumulatedLen = make([]int, numberOfGroups-1)
+	copy(tail.accumulatedLen, lastAccumulatedLenRemoved)
+
+	lastFirstEmptyRemoved := tail.firstEmpty[:numberOfGroups-1]
+	tail.firstEmpty = make([]*int, numberOfGroups-1)
+	copy(tail.firstEmpty, lastFirstEmptyRemoved)
+
 	return
 }
 
@@ -172,23 +203,42 @@ func Last(l *List) Elem {
 
 // Gets all but the last element of the list
 func Init(l *List) (init *List) {
+	if Len(l) == 1 {
+		init = New()
+		return
+	}
+
 	init = NewFromList(l)
 	lenFirstGroup := len(init.elements[0])
 	if lenFirstGroup > 1 {
 		init.elements[0] = init.elements[0][1:]
 		init.offsets[0] += 1
-		for k, v := range init.accumLength[1:] {
-			init.accumLength[k] = v - 1
+		for k, v := range init.accumulatedLen[1:] {
+			init.accumulatedLen[k+1] = v - 1
 		}
 		return
 	}
 
-	init.elements = init.elements[1:]
-	init.offsets = init.offsets[1:]
-	for k, v := range init.accumLength[1:] {
-		init.accumLength[k] = v - init.accumLength[1]
+	numberOfGroups := len(init.elements)
+
+	firstGroupRemoved := init.elements[1:]
+	init.elements = make([][]Elem, numberOfGroups-1)
+	copy(init.elements, firstGroupRemoved)
+
+	firsOffsetRemoved := init.offsets[1:]
+	init.offsets = make([]int, numberOfGroups-1)
+	copy(init.offsets, firsOffsetRemoved)
+
+	firstAccumulatedLen := init.accumulatedLen[1]
+	firstAccumulatedLenRemoved := init.accumulatedLen[1:]
+	init.accumulatedLen = make([]int, numberOfGroups-1)
+	for k, v := range firstAccumulatedLenRemoved {
+		init.accumulatedLen[k] = v - firstAccumulatedLen
 	}
-	init.accumLength = init.accumLength[1:]
+
+	firstEmptyRemoved := init.firstEmpty[1:]
+	init.firstEmpty = make([]*int, numberOfGroups-1)
+	copy(init.firstEmpty, firstEmptyRemoved)
 	return
 }
 
@@ -208,11 +258,11 @@ func Init(l *List) (init *List) {
 func Cons(x Elem, l *List) (newl *List) {
 	lastGroup := len(l.elements) - 1
 	newl = NewFromList(l)
-	if newl.firstEmpty[lastGroup] <= len(newl.elements[lastGroup])+newl.offsets[lastGroup] {
+	if canAppendMoreToGroup(newl, 1, lastGroup) {
 		// A new value can be appended to l.elements[lastGroup] without 
 		// overwritting any shared data
 		newl.elements[lastGroup] = append(newl.elements[lastGroup], x)
-		newl.firstEmpty[lastGroup]++
+		*newl.firstEmpty[lastGroup]++
 		return
 	}
 
@@ -220,23 +270,47 @@ func Cons(x Elem, l *List) (newl *List) {
 	// overwrite a shared value. To circumvent this problem, we simply start 
 	// a new elements' group
 	newl.elements = append(newl.elements, []Elem{x})
-	newl.firstEmpty = append(newl.firstEmpty, 1)
+	lenNewGroup := 1
+	newl.firstEmpty = append(newl.firstEmpty, &lenNewGroup)
 	newl.offsets = append(newl.offsets, 0)
 	lenLastGroup := len(newl.elements[lastGroup])
-	newl.accumLength = append(newl.accumLength, newl.accumLength[lastGroup]+lenLastGroup)
+	newl.accumulatedLen =
+		append(newl.accumulatedLen, newl.accumulatedLen[lastGroup]+lenLastGroup)
 	return
 }
 
+func canAppendMoreToGroup(l *List, amount, groupNumber int) bool {
+	return len(l.elements[groupNumber])+l.offsets[groupNumber]+amount >=
+		*l.firstEmpty[groupNumber]+1
+}
+
 func concatenate(l1, l2 *List) (con *List) {
+	if Empty(l1) {
+		con = NewFromList(l2)
+		return
+	}
+
+	if Empty(l2) {
+		con = NewFromList(l1)
+		return
+	}
+
 	con = NewFromList(l2)
 	for k, group := range l1.elements {
+		lastGroup := len(con.elements) - 1
+		if canAppendMoreToGroup(con, len(group), lastGroup) {
+			con.elements[lastGroup] = append(con.elements[lastGroup], group...)
+			*con.firstEmpty[lastGroup] += len(group)
+			continue
+		}
+
 		con.elements = append(con.elements, group)
 		con.offsets = append(con.offsets, l1.offsets[k])
 		con.firstEmpty = append(con.firstEmpty, l1.firstEmpty[k])
 
-		lastInserted := len(con.accumLength) - 1
-		con.accumLength = append(con.accumLength,
-			con.accumLength[lastInserted]+len(con.elements[lastInserted]))
+		lastInserted := len(con.accumulatedLen) - 1
+		con.accumulatedLen = append(con.accumulatedLen,
+			con.accumulatedLen[lastInserted]+len(con.elements[lastInserted]))
 	}
 	return
 }

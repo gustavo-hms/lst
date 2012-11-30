@@ -15,7 +15,7 @@ package lst
 // })
 func Foldr(init interface{}, l *List, f func(Elem, interface{}) interface{}) (accum interface{}) {
 	accum = init
-	for i := Len(l) - 1; i <= 0; i-- {
+	for i := Len(l) - 1; i >= 0; i-- {
 		accum = f(Get(l, i), accum)
 	}
 	return
@@ -31,7 +31,7 @@ func Foldr(init interface{}, l *List, f func(Elem, interface{}) interface{}) (ac
 //
 // l := NewWithElements(1, 2, 3, 4)
 //
-// sum := Foldr(0, l, func(acc interface{}, x Elem) interface{} {
+// sum := Foldl(0, l, func(acc interface{}, x Elem) interface{} {
 // 	return x.(int) + acc.(int)
 // })
 //
@@ -50,17 +50,14 @@ func Foldl(init interface{}, l *List, f func(interface{}, Elem) interface{}) (ac
 //
 // l := L(1,2,3)
 // Each(l, func(x Elem) {
-// 	fmt.Println(x, " ")
+// 	fmt.Print(x, " ")
 // })
 // -> 1 2 3
 func Each(l *List, f func(Elem)) {
-	Foldl(New(), l, func(acc interface{}, x Elem) interface{} {
-		f(x)
-		return x
-	})
+	for i := 0; i < Len(l); i++ {
+		f(Get(l, i))
+	}
 }
-
-// TODO put tests for iterators in the functions_test.go file
 
 // MakeIterator creates a function one can use to iterate over the elements of 
 // the list. A "nil" value signalises the end of the loop.
@@ -354,7 +351,6 @@ func DropWhile(l *List, f func(x Elem) bool) *List {
 // -> l1 = [1, 2, 3, 2]
 //    l2 = [5, 4, 3, 9, 1]
 func Span(l *List, f func(x Elem) bool) (first, rest *List) {
-	// TODO This implementation is inefficient. Write a new one.
 	return TakeWhile(l, f), DropWhile(l, f)
 }
 
@@ -556,9 +552,8 @@ func Delete(x Elem, l *List) *List {
 // -> [1, 3, 4, 4, 6]
 func Difference(base, subtract *List) *List {
 	table := make(map[Elem]bool)
-	next := MakeIterator(subtract)
-	for e := next(); e != nil; e = next() {
-		table[e] = true
+	for l := NewFromList(subtract); !Empty(l); l = Tail(l) {
+		table[Head(l)] = true
 	}
 	return Foldr(New(), base, func(x Elem, acc interface{}) interface{} {
 		if _, ok := table[x]; ok {
@@ -592,9 +587,8 @@ func Union(l1, l2 *List) *List {
 // -> [2, 2, 5]
 func Intersect(l1, l2 *List) *List {
 	table := make(map[Elem]bool)
-	next := MakeIterator(l2)
-	for e := next(); e != nil; e = next() {
-		table[e] = true
+	for l := NewFromList(l2); !Empty(l); l = Tail(l) {
+		table[Head(l)] = true
 	}
 	return Foldr(New(), l1, func(x Elem, acc interface{}) interface{} {
 		if _, ok := table[x]; ok {

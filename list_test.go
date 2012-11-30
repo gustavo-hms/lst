@@ -135,11 +135,22 @@ func TestHead(t *testing.T) {
 
 func TestTail(t *testing.T) {
 	l := NewFromSlice(elements)
-	tail := Tail(l)
-	for k, v := range elements[1:] {
-		if v != Get(tail, k) {
-			t.Errorf("Mismatched elements at index %d", k)
+	slice := elements
+	length := N
+	for length > 0 {
+		l = Tail(l)
+		length--
+		slice = slice[1:]
+		if Len(l) != length {
+			t.Errorf("Length of tail is %d but must be %d", Len(l), length)
 			return
+		}
+
+		for k, v := range slice {
+			if v != Get(l, k) {
+				t.Errorf("Mismatched elements at index %d", k)
+				return
+			}
 		}
 	}
 }
@@ -153,15 +164,22 @@ func TestLast(t *testing.T) {
 
 func TestInit(t *testing.T) {
 	l := NewFromSlice(elements)
-	tail := Init(l)
-	if Len(tail) != N-1 {
-		t.Errorf("Wrong length: %d instead of %d", Len(tail), N-1)
-	}
-
-	for k, v := range elements[:N-1] {
-		if v != Get(tail, k) {
-			t.Errorf("Mismatched elements at index %d", k)
+	slice := elements
+	length := N
+	for length > 0 {
+		l = Init(l)
+		length--
+		slice = slice[:length]
+		if Len(l) != length {
+			t.Errorf("Wrong length: %d instead of %d", Len(l), length)
 			return
+		}
+
+		for k, v := range slice {
+			if v != Get(l, k) {
+				t.Errorf("Mismatched elements at index %d", k)
+				return
+			}
 		}
 	}
 }
@@ -176,10 +194,13 @@ func TestCons(t *testing.T) {
 		t.Errorf("Number of elements (%d) differ from the %d elements expected", Len(l), N)
 	}
 
-	it := MakeReverseIterator(l)
+	if numberOfGroups := len(l.elements); numberOfGroups != 1 {
+		t.Errorf("Number of groups is %d instead of 1", numberOfGroups)
+	}
+
 	i := 0
-	for elem := it(); elem != nil; elem = it() {
-		if elem != elements[i] {
+	for l1 := NewFromList(l); !Empty(l1); l1 = Init(l1) {
+		if Last(l1) != elements[i] {
 			t.Errorf("Mismatched elements at index %d", N-i-1)
 			return
 		}
@@ -190,6 +211,14 @@ func TestCons(t *testing.T) {
 	if Head(l) == Head(l2) {
 		t.Error("Cons is overwritting elements in lists")
 	}
+
+	if numberOfGroups := len(l.elements); numberOfGroups != 1 {
+		t.Errorf("Number of groups of first list is %d instead of 1", numberOfGroups)
+	}
+
+	if numberOfGroups := len(l2.elements); numberOfGroups != 2 {
+		t.Errorf("Number of groups of second list is %d instead of 2", numberOfGroups)
+	}
 }
 
 func TestConcatenate(t *testing.T) {
@@ -197,15 +226,46 @@ func TestConcatenate(t *testing.T) {
 	l2 := NewFromSlice(elements[N/3 : (2*N)/3])
 	l3 := NewFromSlice(elements[(2*N)/3 : N])
 
-	conc := Concatenate(l1, l2, l3)
+	lenL3 := Len(l3)
 
-	if Len(conc) != N {
-		t.Errorf("Concatenated list has a length of %d, but %d was expected. Lengths: %d, %d, %d", Len(conc), N, Len(l1), Len(l2), Len(l3))
+	Cons(1, l3)
+	conc1 := Concatenate(l1, l2, l3)
+
+	if Len(conc1) != N {
+		t.Errorf("Concatenated list has a length of %d, but %d was expected. Lengths: %d, %d, %d", Len(conc1), N, Len(l1), Len(l2), Len(l3))
 	}
 
 	for k, v := range elements {
-		if v != Get(conc, k) {
+		if v != Get(conc1, k) {
 			t.Errorf("Mismatched elements at index %d", k)
+			return
+		}
+	}
+
+	// Testing if it hasn't contaminated l3
+	if Len(l3) != lenL3 {
+		t.Errorf("Concatenation has contaminated last list. Its length is %d instead of %d", Len(l3), lenL3)
+	}
+	for _, v := range elements[(2*N)/3 : N] {
+		if v != Head(l3) {
+			t.Errorf("Mismatched elements at original list")
+			return
+		}
+		l3 = Tail(l3)
+	}
+
+	conc2 := New()
+	for l4 := newFromReversedSlice(elements); !Empty(l4); l4 = Tail(l4) {
+		conc2 = Concatenate(conc2, L(Head(l4)))
+	}
+
+	if Len(conc2) != N {
+		t.Errorf("Concatenated list has a length of %d, but %d was expected.", Len(conc2), N)
+	}
+
+	for k, v := range elements {
+		if v != Get(conc2, N-k-1) {
+			t.Errorf("Mismatched elements at index %d in second test", k)
 			return
 		}
 	}

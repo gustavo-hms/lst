@@ -546,7 +546,7 @@ func TestEach(t *testing.T) {
 	})
 
 	if !Equal(plus1, eachPlus1) {
-		t.Error("Each isn't applying the closure rightly")
+		t.Error("Each isn't applying the closure properly")
 	}
 }
 

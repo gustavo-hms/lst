@@ -43,7 +43,7 @@ func New() *List {
 
 func NewFromList(original *List) (dest *List) {
 	dest = new(List)
-	dest.elements = original.elements[:]
+	dest.elements = original.elements
 	dest.firstEmpty = original.firstEmpty
 	dest.firstUsed = original.firstUsed
 	return

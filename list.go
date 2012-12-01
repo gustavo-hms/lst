@@ -26,9 +26,8 @@ import (
 
 type Elem interface{}
 
-type List struct {
-	elements       [][]Elem
-	accumulatedLen []int
+type group struct {
+	elements []Elem
 	// All lists have underlying vectors storing its elements, which can be 
 	// shared across several lists. To avoid that a list overwrites elements of 
 	// other lists with shared data, we must be sure we are not writting at 
@@ -36,52 +35,62 @@ type List struct {
 	// anything in the underlying vector except for its own data, we must keep 
 	// two informations regarding the original vector: first, the index of its 
 	// first empty position (stored in the firsEmpty variable); second, the 
-	// index at which the slice begins (offset variable).  So, for instance, 
-	// if we have a vector v = [1, 2, 3, 4, 0, 0, 0, 0] and a slice s := 
-	// v[3:5], the index at which the slice begins is 3, and the index of the 
-	// first empty position is 4. To see how this information is used, see the 
-	// Cons implementation.
-	offsets    []int
-	firstEmpty []*int
+	// index at which the slice begins (offset variable).  So, for instance, if 
+	// we have a vector v = [1, 2, 3, 4, 0, 0, 0, 0] and a slice s := v[3:5], 
+	// the index at which the slice begins is 3, and the index of the first 
+	// empty position is 4. To see how this information is used, see the Cons 
+	// implementation.
+	accumulatedLen int
+	offset         int
+	firstEmpty     *int
+}
+
+func newGroup(accumulatedLen int) group {
+	var g group
+	g.elements = make([]Elem, 0)
+	g.accumulatedLen = accumulatedLen
+	g.firstEmpty = new(int)
+	return g
+}
+
+func newGroupFromReversedSlice(elems []Elem) group {
+	var g group
+	length := len(elems)
+	g.firstEmpty = &length
+	g.elements = make([]Elem, length)
+	copy(g.elements, elems)
+	return g
+}
+
+type List struct {
+	groups          []group
+	firstEmptyGroup *int
+	groupsOffset    int
 }
 
 func New() *List {
 	l := new(List)
-	l.elements = make([][]Elem, 1)
-	l.elements[0] = make([]Elem, 0)
-	l.accumulatedLen = make([]int, 1)
-	l.firstEmpty = make([]*int, 1)
-	l.firstEmpty[0] = new(int)
-	l.offsets = make([]int, 1)
+	l.groups = []group{newGroup(0)}
+	firstEmptyGroup := 1
+	l.firstEmptyGroup = &firstEmptyGroup
 	return l
 }
 
-func NewFromList(original *List) (dest *List) {
-	dest = new(List)
-	numberOfGroups := len(original.elements)
+func NewFromList(original *List) *List {
+	dest := new(List)
+	dest.groups = original.groups
+	dest.firstEmptyGroup = original.firstEmptyGroup
 
-	dest.elements = make([][]Elem, len(original.elements))
-	copy(dest.elements, original.elements)
-
-	dest.accumulatedLen = make([]int, numberOfGroups)
-	copy(dest.accumulatedLen, original.accumulatedLen)
-
-	dest.firstEmpty = make([]*int, numberOfGroups)
-	copy(dest.firstEmpty, original.firstEmpty)
-
-	dest.offsets = make([]int, numberOfGroups)
-	copy(dest.offsets, original.offsets)
-
-	return
+	return dest
 }
 
-func newFromReversedSlice(slice []Elem) (l *List) {
-	l = New()
-	l.elements[0] = make([]Elem, len(slice))
-	copy(l.elements[0], slice)
-	lenSlice := len(slice)
-	l.firstEmpty[0] = &lenSlice
-	return
+func newFromReversedSlice(slice []Elem) *List {
+	l := new(List)
+	l.groups = []group{newGroupFromReversedSlice(slice)}
+	firstEmptyGroup := 1
+	l.firstEmptyGroup = &firstEmptyGroup
+
+	return l
 }
 
 // Constructs a new list from the given slice
@@ -113,38 +122,38 @@ var L = NewWithElements // Just for convenience
 
 // The length of the list
 func Len(l *List) int {
-	numberOfGroups := len(l.accumulatedLen)
-	return l.accumulatedLen[numberOfGroups-1] + len(l.elements[numberOfGroups-1])
+	lastGroup := l.groups[len(l.groups)-1]
+	return lastGroup.accumulatedLen + len(lastGroup.elements)
 }
 
 // Gets the element at index i
 func Get(l *List, i int) Elem {
 	last := Len(l) - 1
 	index := last - i
-	slice, offset := findSlice(l.accumulatedLen, l.elements, index)
+	group := findGroup(l.groups, index)
 
-	return slice[index-offset]
+	return group.elements[index-group.offset]
 }
 
-func findSlice(lengths []int, elements [][]Elem, i int) (group []Elem, offset int) {
-	numberOfGroups := len(lengths)
+func findGroup(groups []group, i int) *group {
+	numberOfGroups := len(groups)
 	if numberOfGroups == 1 {
-		return elements[0], lengths[0]
+		return &groups[0]
 	}
 
 	middle := numberOfGroups / 2
-	if i < lengths[middle] {
-		return findSlice(lengths[:middle], elements[:middle], i)
+	if i < groups[middle].accumulatedLen {
+		return findGroup(groups[:middle], i)
 	}
-	return findSlice(lengths[middle:], elements[middle:], i)
+	return findGroup(groups[middle:], i)
 }
 
 func set(l *List, i int, x Elem) {
 	last := Len(l) - 1
 	index := last - i
-	slice, offset := findSlice(l.accumulatedLen, l.elements, index)
+	group := findGroup(l.groups, index)
 
-	slice[index-offset] = x
+	group.elements[index-group.offset] = x
 }
 
 func (l *List) String() string {
@@ -163,37 +172,31 @@ func Head(l *List) Elem {
 }
 
 // Gets all but the head of the list
-func Tail(l *List) (tail *List) {
-	if Len(l) == 1 {
-		tail = New()
-		return
+func Tail(l *List) *List {
+	lastGroup := len(l.groups) - 1
+	switch {
+	case Len(l) == 1:
+		return New()
+	case len(l.groups[lastGroup].elements) > 1:
+		return removeLastElement(l)
+	default:
+		return removeLastGroup(l)
 	}
+}
 
-	tail = NewFromList(l)
-	numberOfGroups := len(tail.elements)
-	lenLastGroup := len(tail.elements[numberOfGroups-1])
-	if lenLastGroup > 1 {
-		tail.elements[numberOfGroups-1] = tail.elements[numberOfGroups-1][:lenLastGroup-1]
-		return
-	}
+func removeLastElement(original *List) *List {
+	l := NewFromList(original)
+	lastGroup := l.groups[len(l.groups)-1]
+	numberOfElements := len(lastGroup.elements)
+	lastGroup.elements = lastGroup.elements[:numberOfElements-1]
+	l.groups[len(l.groups)-1] = lastGroup
+	return l
+}
 
-	lastGroupRemoved := tail.elements[:numberOfGroups-1]
-	tail.elements = make([][]Elem, numberOfGroups-1)
-	copy(tail.elements, lastGroupRemoved)
-
-	lastOffsetRemoved := tail.offsets[:numberOfGroups-1]
-	tail.offsets = make([]int, numberOfGroups-1)
-	copy(tail.offsets, lastOffsetRemoved)
-
-	lastAccumulatedLenRemoved := tail.accumulatedLen[:numberOfGroups-1]
-	tail.accumulatedLen = make([]int, numberOfGroups-1)
-	copy(tail.accumulatedLen, lastAccumulatedLenRemoved)
-
-	lastFirstEmptyRemoved := tail.firstEmpty[:numberOfGroups-1]
-	tail.firstEmpty = make([]*int, numberOfGroups-1)
-	copy(tail.firstEmpty, lastFirstEmptyRemoved)
-
-	return
+func removeLastGroup(original *List) *List {
+	l := NewFromList(original)
+	l.groups = l.groups[:len(l.groups)-1]
+	return l
 }
 
 // Gets the last element of the list (the first inserted element)
@@ -203,43 +206,36 @@ func Last(l *List) Elem {
 
 // Gets all but the last element of the list
 func Init(l *List) (init *List) {
-	if Len(l) == 1 {
-		init = New()
-		return
+	switch {
+	case Len(l) == 1:
+		return New()
+	case len(l.groups[0].elements) > 1:
+		return removeFirstElement(l)
+	default:
+		return removeFirstGroup(l)
+	}
+}
+
+func removeFirstElement(original *List) *List {
+	l := NewFromList(original)
+	firstGroup := l.groups[0]
+	numberOfElements := len(firstGroup.elements)
+	firstGroup.elements = firstGroup.elements[:numberOfElements-1]
+	l.groups[0] = firstGroup
+
+	for i, g := range l.groups[1:] {
+		g.accumulatedLen--
+		l.groups[i+1] = g
 	}
 
-	init = NewFromList(l)
-	lenFirstGroup := len(init.elements[0])
-	if lenFirstGroup > 1 {
-		init.elements[0] = init.elements[0][1:]
-		init.offsets[0] += 1
-		for k, v := range init.accumulatedLen[1:] {
-			init.accumulatedLen[k+1] = v - 1
-		}
-		return
-	}
+	return l
+}
 
-	numberOfGroups := len(init.elements)
-
-	firstGroupRemoved := init.elements[1:]
-	init.elements = make([][]Elem, numberOfGroups-1)
-	copy(init.elements, firstGroupRemoved)
-
-	firsOffsetRemoved := init.offsets[1:]
-	init.offsets = make([]int, numberOfGroups-1)
-	copy(init.offsets, firsOffsetRemoved)
-
-	firstAccumulatedLen := init.accumulatedLen[1]
-	firstAccumulatedLenRemoved := init.accumulatedLen[1:]
-	init.accumulatedLen = make([]int, numberOfGroups-1)
-	for k, v := range firstAccumulatedLenRemoved {
-		init.accumulatedLen[k] = v - firstAccumulatedLen
-	}
-
-	firstEmptyRemoved := init.firstEmpty[1:]
-	init.firstEmpty = make([]*int, numberOfGroups-1)
-	copy(init.firstEmpty, firstEmptyRemoved)
-	return
+func removeFirstGroup(original *List) *List {
+	l := NewFromList(original)
+	l.groups = l.groups[1:]
+	l.groupsOffset++
+	return l
 }
 
 // The list constructor. It constructs a new list by inserting a new element in

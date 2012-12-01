@@ -84,6 +84,19 @@ func NewFromList(original *List) *List {
 	return dest
 }
 
+func newCopyingGroups(original *List) {
+	dest := new(List)
+	numberOfGroups := len(original.groups)
+	dest.firstEmptyGroup = &numberOfGroups
+
+	dest.groups = make([]groups, numberOfGroups, numberOfGroups+1)
+	for i, g := range original.groups {
+		dest.groups[i] = g
+	}
+
+	return dest
+}
+
 func newFromReversedSlice(slice []Elem) *List {
 	l := new(List)
 	l.groups = []group{newGroupFromReversedSlice(slice)}
@@ -251,33 +264,63 @@ func removeFirstGroup(original *List) *List {
 //
 // Cons(3, third)
 // -> [3, 2, 1]
-func Cons(x Elem, l *List) (newl *List) {
-	lastGroup := len(l.elements) - 1
-	newl = NewFromList(l)
-	if canAppendMoreToGroup(newl, 1, lastGroup) {
-		// A new value can be appended to l.elements[lastGroup] without 
-		// overwritting any shared data
-		newl.elements[lastGroup] = append(newl.elements[lastGroup], x)
-		*newl.firstEmpty[lastGroup]++
-		return
+func Cons(x, Elem, xs *List) *List {
+	if canAppendMoreToGroup(1, xs.groups[len(xs.groups)-1]) {
+		return appendToLastGroup(x, xs)
 	}
 
-	// In this case, we can't append to l.elements[lastGroup], because it would 
-	// overwrite a shared value. To circumvent this problem, we simply start 
-	// a new elements' group
-	newl.elements = append(newl.elements, []Elem{x})
-	lenNewGroup := 1
-	newl.firstEmpty = append(newl.firstEmpty, &lenNewGroup)
-	newl.offsets = append(newl.offsets, 0)
-	lenLastGroup := len(newl.elements[lastGroup])
-	newl.accumulatedLen =
-		append(newl.accumulatedLen, newl.accumulatedLen[lastGroup]+lenLastGroup)
-	return
+	return createNewGroupWithElement(x, xs)
 }
 
-func canAppendMoreToGroup(l *List, amount, groupNumber int) bool {
-	return len(l.elements[groupNumber])+l.offsets[groupNumber]+amount >=
-		*l.firstEmpty[groupNumber]+1
+func canAppendMoreToGroup(amount int, g group) bool {
+	return len(g.elements)+g.offset+amount >= *g.firstEmpty+1
+}
+
+func appendToLastGroup(x Elem, xs *List) *List {
+	l := NewFromList(xs)
+	lastGroup := l.groups[len(l.groups)-1]
+	oldAddress = &lastGroup
+	lastGroup.elements = append(lastGroup.elements, x)
+
+	if oldAddress != &lastGroup {
+		// Append has copied array to a new address
+		lastGroup.offset = 0
+		firstEmpty := *lastGroup.firstEmpty
+		lastGroup.firstEmpty = &firstEmpty
+	}
+
+	lastGroup.firstEmpty++
+
+	l.groups[len(l.groups)-1] = lastGroup
+	return l
+}
+
+func createNewGroupWithElement(x Elem, xs *List) *List {
+	g := newGroupFromReversedSlice([]Elem{x})
+
+	if canAppendMoreGroups(1, xs) {
+		l := NewFromList(xs)
+		oldAddress = &l.groups
+		l.groups = append(l.groups, g)
+
+		if oldAddress != &l.groups {
+			// Append has copied array to a new address
+			l.offset = 0
+			firstEmptyGroup := *l.firstEmptyGroup
+			l.firstEmptyGroup = &firstEmptyGroup
+		}
+
+		l.firstEmptyGroup++
+
+		return l
+	}
+
+	// This case, we need to make a copy of the entire groups slice
+	l := newCopyingGroups(xs)
+	l.groups = append(l.groups, g)
+	l.firstEmptyGroup++
+
+	return l
 }
 
 func concatenate(l1, l2 *List) (con *List) {

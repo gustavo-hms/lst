@@ -84,15 +84,23 @@ func NewFromList(original *List) *List {
 	return dest
 }
 
-func newCopyingGroups(original *List) {
+func newCopyingGroups(original *List, extraCapacity ...int) {
 	dest := new(List)
 	numberOfGroups := len(original.groups)
-	dest.firstEmptyGroup = &numberOfGroups
 
-	dest.groups = make([]groups, numberOfGroups, numberOfGroups+1)
-	for i, g := range original.groups {
-		dest.groups[i] = g
+	extra := 0
+	amountToShrink := 0
+	if len(extraCapacity) > 0 {
+		extra = extraCapacity[0]
+		if extra < 0 {
+			amountToShrink = extra
+		}
 	}
+
+	dest.groups = make([]groups, numberOfGroups-amountToShrink, numberOfGroups+extra)
+	copy(dest.groups, original.groups)
+
+	dest.firstEmptyGroup = len(dest.groups)
 
 	return dest
 }
@@ -198,11 +206,10 @@ func Tail(l *List) *List {
 }
 
 func removeLastElement(original *List) *List {
-	l := NewFromList(original)
-	lastGroup := l.groups[len(l.groups)-1]
-	numberOfElements := len(lastGroup.elements)
-	lastGroup.elements = lastGroup.elements[:numberOfElements-1]
-	l.groups[len(l.groups)-1] = lastGroup
+	l := newCopyingGroups(original)
+	lastGroup := &l.groups[len(l.groups)-1]
+	lastGroup.elements = lastGroup.elements[:len(lastGroup.elements)-1]
+
 	return l
 }
 
@@ -230,11 +237,9 @@ func Init(l *List) (init *List) {
 }
 
 func removeFirstElement(original *List) *List {
-	l := NewFromList(original)
-	firstGroup := l.groups[0]
-	numberOfElements := len(firstGroup.elements)
-	firstGroup.elements = firstGroup.elements[:numberOfElements-1]
-	l.groups[0] = firstGroup
+	l := newCopyingGroups(original)
+	firstGroup := &l.groups[0]
+	firstGroup.elements = firstGroup.elements[:len(firstGroup.elements)-1]
 
 	for i, g := range l.groups[1:] {
 		g.accumulatedLen--
@@ -265,80 +270,98 @@ func removeFirstGroup(original *List) *List {
 // Cons(3, third)
 // -> [3, 2, 1]
 func Cons(x, Elem, xs *List) *List {
-	if canAppendMoreToGroup(1, xs.groups[len(xs.groups)-1]) {
+	if canAppendMoreToGroup(xs.groups[len(xs.groups)-1]) {
 		return appendToLastGroup(x, xs)
 	}
 
 	return createNewGroupWithElement(x, xs)
 }
 
-func canAppendMoreToGroup(amount int, g group) bool {
-	return len(g.elements)+g.offset+amount >= *g.firstEmpty+1
+func canAppendMoreToGroup(g group) bool {
+	return len(g.elements)+g.offset >= *g.firstEmpty
 }
 
 func appendToLastGroup(x Elem, xs *List) *List {
-	l := NewFromList(xs)
-	lastGroup := l.groups[len(l.groups)-1]
-	oldAddress = &lastGroup
-	lastGroup.elements = append(lastGroup.elements, x)
+	l := newCopyingGroups(xs)
+	expandGroup([]Elem{x}, &l.groups[len(l.groups)-1])
 
-	if oldAddress != &lastGroup {
-		// Append has copied array to a new address
-		lastGroup.offset = 0
-		firstEmpty := *lastGroup.firstEmpty
-		lastGroup.firstEmpty = &firstEmpty
+	return l
+}
+
+func expandGroup(elements []Elem, g *group) {
+	oldSlice = g.elements
+	g.elements = append(g.elements, elements...)
+
+	if oldSlice != g.elements {
+		// append has copied array to a new address
+		g.offset = 0
+		firstEmpty := *g.firstEmpty
+		g.firstEmpty = &firstEmpty
 	}
 
-	lastGroup.firstEmpty++
-
-	l.groups[len(l.groups)-1] = lastGroup
-	return l
+	g.firstEmpty += len(elements)
 }
 
 func createNewGroupWithElement(x Elem, xs *List) *List {
 	g := newGroupFromReversedSlice([]Elem{x})
 
-	if canAppendMoreGroups(1, xs) {
+	if canAppendMoreGroups(xs) {
 		l := NewFromList(xs)
 		oldAddress = &l.groups
 		l.groups = append(l.groups, g)
 
 		if oldAddress != &l.groups {
-			// Append has copied array to a new address
+			// append has copied array to a new address
 			l.offset = 0
 			firstEmptyGroup := *l.firstEmptyGroup
 			l.firstEmptyGroup = &firstEmptyGroup
 		}
 
-		l.firstEmptyGroup++
+		*l.firstEmptyGroup++
 
 		return l
 	}
 
 	// This case, we need to make a copy of the entire groups slice
-	l := newCopyingGroups(xs)
+	l := newCopyingGroups(xs, 1)
 	l.groups = append(l.groups, g)
-	l.firstEmptyGroup++
+	*l.firstEmptyGroup++
 
 	return l
 }
 
-func concatenate(l1, l2 *List) (con *List) {
+func canAppendMoreGroups(l *List) bool {
+	return len(l.groups)+l.groupsOffset >= *l.firstEmptyGroup
+}
+
+func concatenate(l1, l2 *List) *List {
 	if Empty(l1) {
-		con = NewFromList(l2)
-		return
+		con := NewFromList(l2)
+		return con
 	}
 
 	if Empty(l2) {
-		con = NewFromList(l1)
-		return
+		con := NewFromList(l1)
+		return con
+	}
+
+	if canAppendMoreToGroup(l2.groups[len(l2.groups)-1]) {
+		con := newCopyingGroups(l2)
+		lastGroup := &conc.groups[len(conc.groups)-1]
+		for i, g := range l1.groups {
+			expandGroup(g.elements, lastGroup)
+		}
+
+		return con
 	}
 
 	con = NewFromList(l2)
-	for k, group := range l1.elements {
-		lastGroup := len(con.elements) - 1
-		if canAppendMoreToGroup(con, len(group), lastGroup) {
-			con.elements[lastGroup] = append(con.elements[lastGroup], group...)
+	for i, g := range l1.groups {
+		lastGroupIndex := len(con.groups) - 1
+		lastGroup := &con.groups[lastGroupIndex]
+
+		if canAppendMoreToGroup(len(g), lastGroup) {
+			con.groups[lastGroupIndex] = append(con.groups[lastGroupIndex], g...)
 			*con.firstEmpty[lastGroup] += len(group)
 			continue
 		}

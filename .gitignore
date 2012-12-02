@@ -23,5 +23,8 @@ _testmain.go
 
 *.exe
 
+# Tags
+tags
+
 # Test files
 lst.test

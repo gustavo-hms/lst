@@ -45,16 +45,16 @@ type group struct {
 	firstEmpty     *int
 }
 
-func newGroup(accumulatedLen int) group {
-	var g group
+func newGroup(accumulatedLen int) *group {
+	g := new(group)
 	g.elements = make([]Elem, 0)
 	g.accumulatedLen = accumulatedLen
 	g.firstEmpty = new(int)
 	return g
 }
 
-func newGroupFromReversedSlice(elems []Elem) group {
-	var g group
+func newGroupFromReversedSlice(elems []Elem) *group {
+	g := new(group)
 	length := len(elems)
 	g.firstEmpty = &length
 	g.elements = make([]Elem, length)
@@ -63,14 +63,14 @@ func newGroupFromReversedSlice(elems []Elem) group {
 }
 
 type List struct {
-	groups          []group
+	groups          []*group
 	firstEmptyGroup *int
 	groupsOffset    int
 }
 
 func New() *List {
 	l := new(List)
-	l.groups = []group{newGroup(0)}
+	l.groups = []*group{newGroup(0)}
 	firstEmptyGroup := 1
 	l.firstEmptyGroup = &firstEmptyGroup
 	return l
@@ -97,7 +97,7 @@ func newCopyingGroups(original *List, extraCapacity ...int) *List {
 		}
 	}
 
-	dest.groups = make([]group, numberOfGroups-amountToShrink, numberOfGroups+extra)
+	dest.groups = make([]*group, numberOfGroups-amountToShrink, numberOfGroups+extra)
 	copy(dest.groups, original.groups)
 
 	firstEmpty := len(dest.groups)
@@ -108,7 +108,7 @@ func newCopyingGroups(original *List, extraCapacity ...int) *List {
 
 func newFromReversedSlice(slice []Elem) *List {
 	l := new(List)
-	l.groups = []group{newGroupFromReversedSlice(slice)}
+	l.groups = []*group{newGroupFromReversedSlice(slice)}
 	firstEmptyGroup := 1
 	l.firstEmptyGroup = &firstEmptyGroup
 
@@ -157,10 +157,10 @@ func Get(l *List, i int) Elem {
 	return group.elements[index-group.offset]
 }
 
-func findGroup(groups []group, i int) *group {
+func findGroup(groups []*group, i int) *group {
 	numberOfGroups := len(groups)
 	if numberOfGroups == 1 {
-		return &groups[0]
+		return groups[0]
 	}
 
 	middle := numberOfGroups / 2
@@ -208,8 +208,9 @@ func Tail(l *List) *List {
 
 func removeLastElement(original *List) *List {
 	l := newCopyingGroups(original)
-	lastGroup := &l.groups[len(l.groups)-1]
+	lastGroup := *l.groups[len(l.groups)-1]
 	lastGroup.elements = lastGroup.elements[:len(lastGroup.elements)-1]
+	l.groups[len(l.groups)-1] = &lastGroup
 
 	return l
 }
@@ -239,12 +240,14 @@ func Init(l *List) (init *List) {
 
 func removeFirstElement(original *List) *List {
 	l := newCopyingGroups(original)
-	firstGroup := &l.groups[0]
-	firstGroup.elements = firstGroup.elements[:len(firstGroup.elements)-1]
+	firstGroup := *l.groups[0]
+	firstGroup.elements = firstGroup.elements[1:]
+	l.groups[0] = &firstGroup
 
 	for i, g := range l.groups[1:] {
-		g.accumulatedLen--
-		l.groups[i+1] = g
+		newg := *g
+		newg.accumulatedLen--
+		l.groups[i+1] = &newg
 	}
 
 	return l
@@ -278,13 +281,13 @@ func Cons(x Elem, xs *List) *List {
 	return createNewGroupWithElement(x, xs)
 }
 
-func canAppendMoreToGroup(g group) bool {
+func canAppendMoreToGroup(g *group) bool {
 	return len(g.elements)+g.offset >= *g.firstEmpty
 }
 
 func appendToLastGroup(x Elem, xs *List) *List {
 	l := newCopyingGroups(xs)
-	expandGroup([]Elem{x}, &l.groups[len(l.groups)-1])
+	expandGroup([]Elem{x}, l.groups[len(l.groups)-1])
 
 	return l
 }
@@ -355,11 +358,12 @@ func concatenate(l1, l2 *List) *List {
 		con.groups = append(con.groups, newGroup(accumulatedLen))
 	}
 
-	lastGroup := &con.groups[len(con.groups)-1]
+	lastGroup := *con.groups[len(con.groups)-1]
 	for _, g := range l1.groups {
-		expandGroup(g.elements, lastGroup)
+		expandGroup(g.elements, &lastGroup)
 	}
 
+	con.groups[len(con.groups)-1] = &lastGroup
 	return con
 }
 

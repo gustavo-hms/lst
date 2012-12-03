@@ -21,8 +21,8 @@ func init() {
 func TestNewFromSlice(t *testing.T) {
 	l := NewFromSlice(elements)
 	count := 0
-	for _, group := range l.elements {
-		for _, v := range group {
+	for _, g := range l.groups {
+		for _, v := range g.elements {
 			if v != elements[N-count-1] {
 				t.Error("Some list's elements differ from the elements in slice")
 				return
@@ -35,8 +35,8 @@ func TestNewFromSlice(t *testing.T) {
 func TestNewFromReversedSlice(t *testing.T) {
 	l := newFromReversedSlice(elements)
 	count := 0
-	for _, group := range l.elements {
-		for _, v := range group {
+	for _, g := range l.groups {
+		for _, v := range g.elements {
 			if v != elements[count] {
 				t.Error("Some list's elements differ from the elements in slice")
 				return
@@ -194,7 +194,7 @@ func TestCons(t *testing.T) {
 		t.Errorf("Number of elements (%d) differ from the %d elements expected", Len(l), N)
 	}
 
-	if numberOfGroups := len(l.elements); numberOfGroups != 1 {
+	if numberOfGroups := len(l.groups); numberOfGroups != 1 {
 		t.Errorf("Number of groups is %d instead of 1", numberOfGroups)
 	}
 
@@ -212,11 +212,11 @@ func TestCons(t *testing.T) {
 		t.Error("Cons is overwritting elements in lists")
 	}
 
-	if numberOfGroups := len(l.elements); numberOfGroups != 1 {
+	if numberOfGroups := len(l.groups); numberOfGroups != 1 {
 		t.Errorf("Number of groups of first list is %d instead of 1", numberOfGroups)
 	}
 
-	if numberOfGroups := len(l2.elements); numberOfGroups != 2 {
+	if numberOfGroups := len(l2.groups); numberOfGroups != 2 {
 		t.Errorf("Number of groups of second list is %d instead of 2", numberOfGroups)
 	}
 }

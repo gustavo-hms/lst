@@ -84,7 +84,7 @@ func NewFromList(original *List) *List {
 	return dest
 }
 
-func newCopyingGroups(original *List, extraCapacity ...int) {
+func newCopyingGroups(original *List, extraCapacity ...int) *List {
 	dest := new(List)
 	numberOfGroups := len(original.groups)
 
@@ -97,10 +97,11 @@ func newCopyingGroups(original *List, extraCapacity ...int) {
 		}
 	}
 
-	dest.groups = make([]groups, numberOfGroups-amountToShrink, numberOfGroups+extra)
+	dest.groups = make([]group, numberOfGroups-amountToShrink, numberOfGroups+extra)
 	copy(dest.groups, original.groups)
 
-	dest.firstEmptyGroup = len(dest.groups)
+	firstEmpty := len(dest.groups)
+	dest.firstEmptyGroup = &firstEmpty
 
 	return dest
 }
@@ -200,9 +201,9 @@ func Tail(l *List) *List {
 		return New()
 	case len(l.groups[lastGroup].elements) > 1:
 		return removeLastElement(l)
-	default:
-		return removeLastGroup(l)
 	}
+
+	return removeLastGroup(l)
 }
 
 func removeLastElement(original *List) *List {
@@ -231,9 +232,9 @@ func Init(l *List) (init *List) {
 		return New()
 	case len(l.groups[0].elements) > 1:
 		return removeFirstElement(l)
-	default:
-		return removeFirstGroup(l)
 	}
+
+	return removeFirstGroup(l)
 }
 
 func removeFirstElement(original *List) *List {
@@ -269,7 +270,7 @@ func removeFirstGroup(original *List) *List {
 //
 // Cons(3, third)
 // -> [3, 2, 1]
-func Cons(x, Elem, xs *List) *List {
+func Cons(x Elem, xs *List) *List {
 	if canAppendMoreToGroup(xs.groups[len(xs.groups)-1]) {
 		return appendToLastGroup(x, xs)
 	}
@@ -289,17 +290,18 @@ func appendToLastGroup(x Elem, xs *List) *List {
 }
 
 func expandGroup(elements []Elem, g *group) {
-	oldSlice = g.elements
+	oldSliceAddress := &g.elements
 	g.elements = append(g.elements, elements...)
 
-	if oldSlice != g.elements {
+	if oldSliceAddress != &g.elements {
 		// append has copied array to a new address
 		g.offset = 0
 		firstEmpty := *g.firstEmpty
 		g.firstEmpty = &firstEmpty
 	}
 
-	g.firstEmpty += len(elements)
+	length := len(elements)
+	g.firstEmpty = &length
 }
 
 func createNewGroupWithElement(x Elem, xs *List) *List {
@@ -307,12 +309,12 @@ func createNewGroupWithElement(x Elem, xs *List) *List {
 
 	if canAppendMoreGroups(xs) {
 		l := NewFromList(xs)
-		oldAddress = &l.groups
+		oldAddress := &l.groups
 		l.groups = append(l.groups, g)
 
 		if oldAddress != &l.groups {
 			// append has copied array to a new address
-			l.offset = 0
+			l.groupsOffset = 0
 			firstEmptyGroup := *l.firstEmptyGroup
 			l.firstEmptyGroup = &firstEmptyGroup
 		}
@@ -336,45 +338,29 @@ func canAppendMoreGroups(l *List) bool {
 
 func concatenate(l1, l2 *List) *List {
 	if Empty(l1) {
-		con := NewFromList(l2)
-		return con
+		return NewFromList(l2)
 	}
 
 	if Empty(l2) {
-		con := NewFromList(l1)
-		return con
+		return NewFromList(l1)
 	}
 
+	var con *List
 	if canAppendMoreToGroup(l2.groups[len(l2.groups)-1]) {
-		con := newCopyingGroups(l2)
-		lastGroup := &conc.groups[len(conc.groups)-1]
-		for i, g := range l1.groups {
-			expandGroup(g.elements, lastGroup)
-		}
-
-		return con
+		con = newCopyingGroups(l2)
+	} else {
+		con = newCopyingGroups(l2, 1)
+		lastGroup := con.groups[len(con.groups)-1]
+		accumulatedLen := lastGroup.accumulatedLen + len(lastGroup.elements)
+		con.groups = append(con.groups, newGroup(accumulatedLen))
 	}
 
-	con = NewFromList(l2)
-	for i, g := range l1.groups {
-		lastGroupIndex := len(con.groups) - 1
-		lastGroup := &con.groups[lastGroupIndex]
-
-		if canAppendMoreToGroup(len(g), lastGroup) {
-			con.groups[lastGroupIndex] = append(con.groups[lastGroupIndex], g...)
-			*con.firstEmpty[lastGroup] += len(group)
-			continue
-		}
-
-		con.elements = append(con.elements, group)
-		con.offsets = append(con.offsets, l1.offsets[k])
-		con.firstEmpty = append(con.firstEmpty, l1.firstEmpty[k])
-
-		lastInserted := len(con.accumulatedLen) - 1
-		con.accumulatedLen = append(con.accumulatedLen,
-			con.accumulatedLen[lastInserted]+len(con.elements[lastInserted]))
+	lastGroup := &con.groups[len(con.groups)-1]
+	for _, g := range l1.groups {
+		expandGroup(g.elements, lastGroup)
 	}
-	return
+
+	return con
 }
 
 // Concatenates all the lists given as arguments.

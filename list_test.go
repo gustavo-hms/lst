@@ -18,6 +18,21 @@ func init() {
 	}
 }
 
+func TestNewGroupFromReversedSlice(t *testing.T) {
+	g := newGroupFromReversedSlice(elements)
+
+	if len(g.elements) != N {
+		t.Error("Length of group's elements is %d, but must be %d", len(g.elements), N)
+	}
+
+	for i, v := range elements {
+		if v != g.elements[i] {
+			t.Error("Some group's elements differ from the elements in slice")
+			return
+		}
+	}
+}
+
 func TestNewFromSlice(t *testing.T) {
 	l := NewFromSlice(elements)
 	count := 0
@@ -207,6 +222,24 @@ func TestCons(t *testing.T) {
 		i++
 	}
 
+	Cons(17, l)
+	if Len(l) != N {
+		t.Errorf("Number of elements (%d) differ from the %d elements expected", Len(l), N)
+		return
+	}
+	i = 0
+	for l1 := NewFromList(l); !Empty(l1); l1 = Init(l1) {
+		if i > N || i < 0 {
+			t.Errorf("Index out of range: %d", i)
+			return
+		}
+		if Last(l1) != elements[i] {
+			t.Errorf("Mismatched elements at index %d", N-i-1)
+			return
+		}
+		i++
+	}
+
 	l2 := Cons(Head(l).(int)-1, Tail(l))
 	if Head(l) == Head(l2) {
 		t.Error("Cons is overwritting elements in lists")
@@ -222,16 +255,18 @@ func TestCons(t *testing.T) {
 }
 
 func TestConcatenate(t *testing.T) {
-	l1 := NewFromSlice(elements[0 : N/3])
+	l1 := NewFromSlice(elements[:N/3])
 	l2 := NewFromSlice(elements[N/3 : (2*N)/3])
-	l3 := NewFromSlice(elements[(2*N)/3 : N])
+	l3 := NewFromSlice(elements[(2*N)/3:])
 
 	lenL3 := Len(l3)
 
 	Cons(1, l3)
+	t.Log(l3)
 	conc1 := Concatenate(l1, l2, l3)
 
 	if Len(conc1) != N {
+		t.Log(l1, l2, l3)
 		t.Errorf("Concatenated list has a length of %d, but %d was expected. Lengths: %d, %d, %d", Len(conc1), N, Len(l1), Len(l2), Len(l3))
 	}
 
@@ -246,7 +281,7 @@ func TestConcatenate(t *testing.T) {
 	if Len(l3) != lenL3 {
 		t.Errorf("Concatenation has contaminated last list. Its length is %d instead of %d", Len(l3), lenL3)
 	}
-	for _, v := range elements[(2*N)/3 : N] {
+	for _, v := range elements[(2*N)/3:] {
 		if v != Head(l3) {
 			t.Errorf("Mismatched elements at original list")
 			return

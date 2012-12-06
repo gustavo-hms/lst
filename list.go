@@ -84,7 +84,7 @@ func NewFromList(original *List) *List {
 	return dest
 }
 
-func newCopyingGroups(original *List, extraCapacity ...int) *List {
+func newCopyingGroupsSlice(original *List, extraCapacity ...int) *List {
 	dest := new(List)
 	numberOfGroups := len(original.groups)
 
@@ -97,7 +97,7 @@ func newCopyingGroups(original *List, extraCapacity ...int) *List {
 		}
 	}
 
-	dest.groups = make([]*group, numberOfGroups-amountToShrink, numberOfGroups+extra)
+	dest.groups = make([]*group, numberOfGroups+amountToShrink, numberOfGroups+extra)
 	copy(dest.groups, original.groups)
 
 	firstEmpty := len(dest.groups)
@@ -154,7 +154,7 @@ func Get(l *List, i int) Elem {
 	index := last - i
 	group := findGroup(l.groups, index)
 
-	return group.elements[index-group.offset]
+	return group.elements[index-group.accumulatedLen]
 }
 
 func findGroup(groups []*group, i int) *group {
@@ -207,7 +207,7 @@ func Tail(l *List) *List {
 }
 
 func removeLastElement(original *List) *List {
-	l := newCopyingGroups(original)
+	l := newCopyingGroupsSlice(original)
 	lastGroup := *l.groups[len(l.groups)-1]
 	lastGroup.elements = lastGroup.elements[:len(lastGroup.elements)-1]
 	l.groups[len(l.groups)-1] = &lastGroup
@@ -239,7 +239,7 @@ func Init(l *List) (init *List) {
 }
 
 func removeFirstElement(original *List) *List {
-	l := newCopyingGroups(original)
+	l := newCopyingGroupsSlice(original)
 	firstGroup := *l.groups[0]
 	firstGroup.elements = firstGroup.elements[1:]
 	l.groups[0] = &firstGroup
@@ -286,8 +286,10 @@ func canAppendMoreToGroup(g *group) bool {
 }
 
 func appendToLastGroup(x Elem, xs *List) *List {
-	l := newCopyingGroups(xs)
-	expandGroup([]Elem{x}, l.groups[len(l.groups)-1])
+	l := newCopyingGroupsSlice(xs)
+	lastGroup := *l.groups[len(l.groups)-1]
+	expandGroup([]Elem{x}, &lastGroup)
+	l.groups[len(l.groups)-1] = &lastGroup
 
 	return l
 }
@@ -304,7 +306,7 @@ func expandGroup(elements []Elem, g *group) {
 	}
 
 	length := len(elements)
-	g.firstEmpty = &length
+	*g.firstEmpty += length
 }
 
 func createNewGroupWithElement(x Elem, xs *List) *List {
@@ -328,7 +330,7 @@ func createNewGroupWithElement(x Elem, xs *List) *List {
 	}
 
 	// This case, we need to make a copy of the entire groups slice
-	l := newCopyingGroups(xs, 1)
+	l := newCopyingGroupsSlice(xs, 1)
 	l.groups = append(l.groups, g)
 	*l.firstEmptyGroup++
 
@@ -350,9 +352,9 @@ func concatenate(l1, l2 *List) *List {
 
 	var con *List
 	if canAppendMoreToGroup(l2.groups[len(l2.groups)-1]) {
-		con = newCopyingGroups(l2)
+		con = newCopyingGroupsSlice(l2)
 	} else {
-		con = newCopyingGroups(l2, 1)
+		con = newCopyingGroupsSlice(l2, 1)
 		lastGroup := con.groups[len(con.groups)-1]
 		accumulatedLen := lastGroup.accumulatedLen + len(lastGroup.elements)
 		con.groups = append(con.groups, newGroup(accumulatedLen))

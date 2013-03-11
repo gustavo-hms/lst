@@ -21,6 +21,7 @@ package lst
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -58,15 +59,20 @@ func newFromReversedSlice(slice []Elem) (l *List) {
 	return
 }
 
-func NewFromSlice(slice []Elem) (l *List) {
-	l = new(List)
-	l.elements = make([]Elem, len(slice))
-
-	for k, v := range slice {
-		set(l, k, v)
+func NewFromSlice(slice interface{}) (l *List) {
+	value := reflect.ValueOf(slice)
+	if value.Kind() != reflect.Slice {
+		panic("Given argument isn't a slice")
 	}
 
-	i := len(slice)
+	l = new(List)
+	l.elements = make([]Elem, value.Len())
+
+	for i := 0; i < value.Len(); i++ {
+		set(l, i, value.Index(i).Interface())
+	}
+
+	i := value.Len()
 	l.firstEmpty = &i
 	return
 }
